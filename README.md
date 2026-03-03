@@ -1,5 +1,8 @@
 # RosClaw
 
+> [!IMPORTANT]
+> **This project is undergoing a major re-architecture and migration to separate repos.** Check back soon for updates, or reach out on X [@irvinxyz](https://x.com/irvinxyz) to follow along.
+
 **Natural language control of ROS2 robots through messaging apps, powered by AI agents.**
 
 RosClaw connects [OpenClaw](https://github.com/openclaw) to [ROS2](https://docs.ros.org/) (the Robot Operating System) through an intelligent plugin layer. Send a message on Telegram, WhatsApp, Discord, or Slack — the robot moves. Connect to your own robot or "lease" any robot registered into our portal globally. Each robot registers their own profile with capabilitie.
