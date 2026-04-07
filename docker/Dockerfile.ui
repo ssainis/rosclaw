@@ -7,7 +7,7 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /app
 
 # Copy workspace config
-COPY package.json pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 
 # Copy only the ui package manifest so pnpm can resolve deps
 COPY ui/package.json ui/package.json
@@ -28,6 +28,7 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /app
 
 COPY --from=base /app/package.json ./
+COPY --from=base /app/pnpm-lock.yaml ./
 COPY --from=base /app/pnpm-workspace.yaml ./
 COPY --from=base /app/.npmrc ./
 COPY --from=base /app/ui ./ui

@@ -1,40 +1,25 @@
 # RosClaw plugin image
-# Builds the TypeScript packages and extensions
+# The plugin is loaded by an OpenClaw host process (not a standalone server).
 
-FROM node:20-slim AS base
+FROM node:20-slim
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 WORKDIR /app
 
-# Copy workspace config
-COPY package.json pnpm-workspace.yaml .npmrc tsconfig.base.json ./
+# Copy workspace metadata
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc tsconfig.base.json ./
 
-# Copy package manifests for dependency resolution
-COPY packages/transport/package.json packages/transport/
-COPY packages/rosbridge-client/package.json packages/rosbridge-client/
-COPY packages/transport-local/package.json packages/transport-local/
-COPY packages/transport-webrtc/package.json packages/transport-webrtc/
-COPY extensions/openclaw-plugin/package.json extensions/openclaw-plugin/
-COPY extensions/openclaw-canvas/package.json extensions/openclaw-canvas/
+# Copy extension manifests for targeted dependency install
+COPY extensions/openclaw-plugin/package.json extensions/openclaw-plugin/package.json
+COPY extensions/openclaw-canvas/package.json extensions/openclaw-canvas/package.json
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install only plugin workspace dependencies
+RUN pnpm install --filter @rosclaw/rosclaw --frozen-lockfile
 
-# Copy source code
-COPY packages/ packages/
-COPY extensions/ extensions/
-
-# Build all packages
-RUN pnpm build
-
-# --- Production stage ---
-FROM node:20-slim AS production
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
-
-WORKDIR /app
-
-COPY --from=base /app .
+# Copy plugin source
+COPY extensions/openclaw-plugin/ extensions/openclaw-plugin/
 
 ENV NODE_ENV=production
 
-CMD ["node", "extensions/openclaw-plugin/dist/index.js"]
+# Keep container alive for packaging/dev purposes; plugin runs inside OpenClaw.
+CMD ["sh", "-c", "echo 'RosClaw plugin image built. Attach/mount this extension into an OpenClaw runtime to execute it.' && tail -f /dev/null"]

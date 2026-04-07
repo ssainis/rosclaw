@@ -1,5 +1,3 @@
-version: "3.8"
-
 # Development overrides — use with:
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 
@@ -12,7 +10,6 @@ services:
 
   rosclaw:
     volumes:
-      - ../packages:/app/packages
       - ../extensions:/app/extensions
     environment:
       - NODE_ENV=development

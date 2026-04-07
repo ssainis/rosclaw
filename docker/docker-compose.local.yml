@@ -1,5 +1,3 @@
-version: "3.8"
-
 # Mode A: Same Machine — OpenClaw + ROS2 on the robot itself.
 # The plugin uses LocalTransport (direct DDS, no network needed).
 

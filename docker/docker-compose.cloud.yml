@@ -1,5 +1,3 @@
-version: "3.8"
-
 # Mode C: Cloud-side — OpenClaw + RosClaw plugin on a cloud VPS.
 # Connects to the robot via WebRTC through the signaling server.
 

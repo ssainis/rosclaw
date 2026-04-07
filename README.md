@@ -75,11 +75,15 @@ pnpm build
 ### Run the Demo Stack
 
 ```bash
-cd docker
-docker compose up
+docker compose -f docker/docker-compose.yml up --build
 ```
 
-This starts ROS2 + rosbridge + Gazebo. Then configure your OpenClaw instance to use the RosClaw plugin with `ws://localhost:9090`.
+This starts ROS2 + rosbridge + Gazebo + the UI dashboard.
+
+- UI: `http://localhost:4173`
+- rosbridge: `ws://localhost:9090`
+
+For a full UI end-to-end test checklist, see `docs/ui-e2e-testing.md`.
 
 ### Try It
 
