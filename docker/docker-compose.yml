@@ -31,6 +31,22 @@ services:
     networks:
       - rosclaw
 
+  # RosClaw dashboard UI (Vite + Vue 3)
+  ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ui
+    image: rosclaw/ui:latest
+    ports:
+      - "4173:4173"   # Vite preview server
+    environment:
+      - VITE_ROSBRIDGE_URL=ws://ros2:9090
+    depends_on:
+      - ros2
+    networks:
+      - rosclaw
+
 networks:
   rosclaw:
     driver: bridge
+

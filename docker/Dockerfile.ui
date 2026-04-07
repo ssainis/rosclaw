@@ -1,0 +1,41 @@
+# RosClaw UI image
+# Builds the Vite + Vue 3 dashboard and serves it with `vite preview`
+
+FROM node:20-slim AS base
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+
+WORKDIR /app
+
+# Copy workspace config
+COPY package.json pnpm-workspace.yaml .npmrc ./
+
+# Copy only the ui package manifest so pnpm can resolve deps
+COPY ui/package.json ui/package.json
+
+# Install dependencies (ui workspace only, skip optional heavy packages)
+RUN pnpm install --filter @rosclaw/ui --frozen-lockfile
+
+# Copy ui source
+COPY ui/ ui/
+
+# Build the production bundle
+RUN pnpm --filter @rosclaw/ui build
+
+# --- Production stage ---
+FROM node:20-slim AS production
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+
+WORKDIR /app
+
+COPY --from=base /app/package.json ./
+COPY --from=base /app/pnpm-workspace.yaml ./
+COPY --from=base /app/.npmrc ./
+COPY --from=base /app/ui ./ui
+
+# Install only production deps needed to run vite preview
+RUN pnpm install --filter @rosclaw/ui --prod --frozen-lockfile || true
+
+EXPOSE 4173
+
+# vite preview serves on 0.0.0.0:4173 by default when --host is provided
+CMD ["pnpm", "--filter", "@rosclaw/ui", "exec", "vite", "preview", "--host", "0.0.0.0", "--port", "4173"]
