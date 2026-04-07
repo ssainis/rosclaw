@@ -13,6 +13,7 @@ export class RosbridgeClient {
   private ws: WebSocket | null = null;
   private status: ConnectionStatus = "disconnected";
   private messageHandlers = new Map<string, Set<MessageHandler>>();
+  private topicTypes = new Map<string, string>();
   private connectionHandlers = new Set<ConnectionHandler>();
   private intentionalClose = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -72,6 +73,7 @@ export class RosbridgeClient {
       this.messageHandlers.set(topic, new Set());
     }
     this.messageHandlers.get(topic)!.add(handler);
+    this.topicTypes.set(topic, msgType);
 
     if (this.status === "connected") {
       this.send({ op: "subscribe", id: this.nextId("sub"), topic, type: msgType });
@@ -83,6 +85,7 @@ export class RosbridgeClient {
         handlers.delete(handler);
         if (handlers.size === 0) {
           this.messageHandlers.delete(topic);
+          this.topicTypes.delete(topic);
           if (this.status === "connected") {
             this.send({ op: "unsubscribe", id: this.nextId("unsub"), topic });
           }
@@ -132,7 +135,13 @@ export class RosbridgeClient {
       this.setStatus("connected");
       // Re-subscribe to all active topics after (re)connect
       for (const [topic] of this.messageHandlers) {
-        this.send({ op: "subscribe", id: this.nextId("resub"), topic });
+        const msgType = this.topicTypes.get(topic);
+        this.send({
+          op: "subscribe",
+          id: this.nextId("resub"),
+          topic,
+          ...(msgType ? { type: msgType } : {}),
+        });
       }
     };
 
