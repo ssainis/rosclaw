@@ -8,8 +8,8 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
-    "test:unit": "vitest run src/**/*.unit.test.ts",
-    "test:integration": "vitest run src/**/*.integration.test.ts",
+    "test:unit": "bash -lc 'shopt -s globstar nullglob; pnpm exec vitest run src/**/*.unit.test.ts'",
+    "test:integration": "bash -lc 'shopt -s globstar nullglob; pnpm exec vitest run src/**/*.integration.test.ts'",
     "test": "pnpm run test:unit && pnpm run test:integration",
     "test:e2e": "playwright test"
   },

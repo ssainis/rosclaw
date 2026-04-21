@@ -2,6 +2,10 @@
 import { onMounted, onUnmounted, ref } from "vue";
 import RosCanvas from "../components/RosCanvas.vue";
 import type { RobotPose } from "../components/RosCanvas.vue";
+import {
+  buildCanonicalEventEnvelope,
+  rosHeaderStampToIso,
+} from "../core/events/envelope";
 import { getRosbridgeClient } from "../services/rosbridge-connection";
 import { useConnectionStore } from "../stores/connection";
 
@@ -29,7 +33,17 @@ onMounted(() => {
   if (!client) return;
 
   unsubscribe = client.subscribe("/odom", "nav_msgs/Odometry", (msg) => {
-    const pose = mapOdomMessage(msg);
+    const envelope = buildCanonicalEventEnvelope({
+      source: "rosbridge",
+      entity_type: "robot",
+      entity_id: "robot-1",
+      event_type: "topic:/odom",
+      timestamp_source: rosHeaderStampToIso(msg),
+      payload: msg,
+    });
+
+    const payload = envelope.payload as Record<string, unknown>;
+    const pose = mapOdomMessage(payload);
     if (!pose) return;
     robots.value = [pose];
     store.markRosbridgeMessageReceived();
