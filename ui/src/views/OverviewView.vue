@@ -6,6 +6,7 @@ import {
   buildCanonicalEventEnvelope,
   rosHeaderStampToIso,
 } from "../core/events/envelope";
+import { eventBus } from "../core/events/runtime";
 import { getRosbridgeClient } from "../services/rosbridge-connection";
 import { useConnectionStore } from "../stores/connection";
 
@@ -41,6 +42,8 @@ onMounted(() => {
       timestamp_source: rosHeaderStampToIso(msg),
       payload: msg,
     });
+
+    eventBus.publish(envelope);
 
     const payload = envelope.payload as Record<string, unknown>;
     const pose = mapOdomMessage(payload);

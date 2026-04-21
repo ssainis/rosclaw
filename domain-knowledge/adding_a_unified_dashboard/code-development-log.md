@@ -127,6 +127,34 @@ Issues encountered and resolved:
 - Second script revision failed with `vitest: command not found` inside `bash -lc`.
   - Action taken: switched to `pnpm exec vitest` in script; reran and confirmed passing.
 
+### 7) Phase 2 implementation continued (EPIC 2 / T2.2)
+
+#### 7.1 Event bus and routing
+- Added typed event bus under `ui/src/core/events/bus.ts` with:
+  - route subscriptions by `source`, `entity_type`, `entity_id`, `event_type` (string or regex), and `severity`
+  - all-events subscription helper
+  - malformed-event containment via envelope validation gate + malformed handlers
+  - route handler isolation so one failing handler does not prevent other route handlers
+  - throttling hooks (`getThrottleMs`, `getThrottleKey`) for burst stream control
+
+#### 7.2 Runtime integration
+- Added shared runtime bus singleton in `ui/src/core/events/runtime.ts`.
+- Integrated Overview `/odom` callback to publish canonical envelopes into the event bus before local pose mapping.
+- Preserved `/odom` golden-path rendering and freshness behavior.
+
+#### 7.3 Test coverage added
+- Added integration tests in `ui/src/core/events/bus.integration.test.ts` covering:
+  - routing correctness by source and event type filters
+  - malformed event containment and malformed handler notification
+  - route handler error containment while continuing other routes
+  - throttle hook behavior for high-frequency stream suppression
+
+#### 7.4 Validation results for this slice
+- Typecheck: passed.
+- Unit tests: passed (7 tests).
+- Integration tests: passed (6 tests, including new bus suite).
+- E2E smoke: passed (`shell and overview render`) because the overview user-visible path was touched.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -151,8 +179,8 @@ Issues encountered and resolved:
 
 ## Current status
 - Phase 1 remains complete and validated.
-- Phase 2 (EPIC 2) has started with T2.1 completed and validated.
-- Work is paused at the end of this atomic phase slice before T2.2.
+- Phase 2 (EPIC 2) now has T2.1 and T2.2 completed and validated.
+- Work is paused at the end of this atomic phase slice before T2.3.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
@@ -161,6 +189,7 @@ Use this section to keep an atomized record of commits as each phase is complete
 |---|---|---|---|
 | TBD | TBD | TBD | Phase 1 |
 | 2026-04-21 | TBD | TBD | Phase 2 - T2.1 canonical event envelope |
+| 2026-04-21 | TBD | TBD | Phase 2 - T2.2 event bus and routing |
 
 ### Ledger update rules
 - Add one row per atomic commit.
