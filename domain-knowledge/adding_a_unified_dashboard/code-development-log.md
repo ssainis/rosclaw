@@ -155,6 +155,42 @@ Issues encountered and resolved:
 - Integration tests: passed (6 tests, including new bus suite).
 - E2E smoke: passed (`shell and overview render`) because the overview user-visible path was touched.
 
+### 8) Phase 2 implementation completed for EPIC 2 (T2.3)
+
+#### 8.1 Domain stores baseline
+- Added baseline stores with selectors/getters and envelope ingestion actions:
+  - `ui/src/stores/robot.ts`
+  - `ui/src/stores/agent.ts`
+  - `ui/src/stores/mission.ts`
+  - `ui/src/stores/alerts.ts`
+- Store coverage includes:
+  - Robot pose state from `/odom` with recency-based online count selector
+  - Agent snapshots/status counts/active agent selector
+  - Mission status + mode snapshot with active selector
+  - Alert feed with severity and unacknowledged counters
+
+#### 8.2 Event-to-store routing integration
+- Added domain event routing service in `ui/src/services/domain-event-routing.ts`.
+- Wired app lifecycle to initialize and teardown domain event routing in `ui/src/App.vue`.
+- Routing behavior:
+  - all canonical events from event bus are dispatched to domain stores
+  - malformed event containment emits a warning alert entry for visibility
+
+#### 8.3 Tests added
+- Unit tests:
+  - `ui/src/stores/robot.unit.test.ts`
+  - `ui/src/stores/agent.unit.test.ts`
+  - `ui/src/stores/mission.unit.test.ts`
+  - `ui/src/stores/alerts.unit.test.ts`
+- Integration tests:
+  - `ui/src/services/domain-event-routing.integration.test.ts`
+
+#### 8.4 Validation results for this slice
+- Typecheck: passed.
+- Unit tests: passed (13 tests).
+- Integration tests: passed (8 tests).
+- E2E smoke: passed (`shell and overview render`) because app lifecycle and user-visible data plumbing were touched.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -179,8 +215,8 @@ Issues encountered and resolved:
 
 ## Current status
 - Phase 1 remains complete and validated.
-- Phase 2 (EPIC 2) now has T2.1 and T2.2 completed and validated.
-- Work is paused at the end of this atomic phase slice before T2.3.
+- Phase 2 EPIC 2 (T2.1, T2.2, T2.3) is complete and validated.
+- Work is paused at the end of this atomic phase slice before EPIC 3 / T3.1.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
@@ -190,6 +226,7 @@ Use this section to keep an atomized record of commits as each phase is complete
 | TBD | TBD | TBD | Phase 1 |
 | 2026-04-21 | TBD | TBD | Phase 2 - T2.1 canonical event envelope |
 | 2026-04-21 | TBD | TBD | Phase 2 - T2.2 event bus and routing |
+| 2026-04-21 | TBD | TBD | Phase 2 - T2.3 domain stores baseline |
 
 ### Ledger update rules
 - Add one row per atomic commit.
