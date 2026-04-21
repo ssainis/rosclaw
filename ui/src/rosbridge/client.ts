@@ -11,8 +11,9 @@ import type {
  */
 export class RosbridgeClient {
   private ws: WebSocket | null = null;
-  private status: ConnectionStatus = "disconnected";
+  private status: ConnectionStatus = "idle";
   private messageHandlers = new Map<string, Set<MessageHandler>>();
+  private topicTypes = new Map<string, string>();
   private connectionHandlers = new Set<ConnectionHandler>();
   private intentionalClose = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -38,7 +39,9 @@ export class RosbridgeClient {
 
   /** Connect to the rosbridge WebSocket server. */
   connect(): void {
-    if (this.status !== "disconnected") return;
+    if (this.status === "connected" || this.status === "connecting" || this.status === "reconnecting") {
+      return;
+    }
     this.intentionalClose = false;
     this.setStatus("connecting");
     this.openSocket();
@@ -68,6 +71,8 @@ export class RosbridgeClient {
 
   /** Subscribe to incoming messages for a specific ROS topic. */
   subscribe(topic: string, msgType: string, handler: MessageHandler): () => void {
+    this.topicTypes.set(topic, msgType);
+
     if (!this.messageHandlers.has(topic)) {
       this.messageHandlers.set(topic, new Set());
     }
@@ -83,6 +88,7 @@ export class RosbridgeClient {
         handlers.delete(handler);
         if (handlers.size === 0) {
           this.messageHandlers.delete(topic);
+          this.topicTypes.delete(topic);
           if (this.status === "connected") {
             this.send({ op: "unsubscribe", id: this.nextId("unsub"), topic });
           }
@@ -132,7 +138,12 @@ export class RosbridgeClient {
       this.setStatus("connected");
       // Re-subscribe to all active topics after (re)connect
       for (const [topic] of this.messageHandlers) {
-        this.send({ op: "subscribe", id: this.nextId("resub"), topic });
+        this.send({
+          op: "subscribe",
+          id: this.nextId("resub"),
+          topic,
+          type: this.topicTypes.get(topic),
+        });
       }
     };
 
@@ -146,10 +157,13 @@ export class RosbridgeClient {
 
     this.ws.onclose = () => {
       this.ws = null;
-      this.setStatus("disconnected");
       if (!this.intentionalClose && this.reconnect) {
+        this.setStatus("reconnecting");
         this.scheduleReconnect();
+        return;
       }
+
+      this.setStatus("disconnected");
     };
   }
 
@@ -185,7 +199,10 @@ export class RosbridgeClient {
 
   private scheduleReconnect(): void {
     if (this.intentionalClose) return;
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.setStatus("failed");
+      return;
+    }
 
     this.reconnectAttempts++;
     const delay = Math.min(

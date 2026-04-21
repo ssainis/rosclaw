@@ -1,5 +1,11 @@
 /** Connection states for the rosbridge WebSocket client. */
-export type ConnectionStatus = "disconnected" | "connecting" | "connected";
+export type ConnectionStatus =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "failed"
+  | "disconnected";
 
 /** Handler invoked when a topic message arrives. */
 export type MessageHandler = (msg: Record<string, unknown>) => void;
