@@ -1,131 +1,154 @@
 # RosClaw
 
-> [!IMPORTANT]
-> **This project is undergoing a major re-architecture and migration to separate repos.** Check back soon for updates, or reach out on X [@irvinxyz](https://x.com/irvinxyz) to follow along.
+Natural-language control and observability for ROS2 robots through OpenClaw.
 
-**Natural language control of ROS2 robots through messaging apps, powered by AI agents.**
+RosClaw connects OpenClaw to ROS2 using transport adapters (rosbridge by default, with local and WebRTC stubs). This repository contains:
 
-RosClaw connects [OpenClaw](https://github.com/openclaw) to [ROS2](https://docs.ros.org/) (the Robot Operating System) through an intelligent plugin layer. Send a message on Telegram, WhatsApp, Discord, or Slack — the robot moves. Connect to your own robot or "lease" any robot registered into our portal globally. Each robot registers their own profile with capabilitie.
+- OpenClaw plugin code for ROS2 tool execution and safety controls
+- ROS2 workspace packages for discovery/messages/agent bridge
+- A Vue dashboard app for live rosbridge validation and upcoming unified dashboard work
+- Docker Compose modes for local, dev, cloud, and robot-side scenarios
 
-Whethere it's a cute desk robot or a humanoid robot, all you have to do is install our OpenClaw extension and run our ROS2 packakge.
+## Architecture
 
-<p align="center">
-  <a href="https://x.com/livinoffwater/status/2017172436119331133">
-    <img src="assets/thumbnail-1.jpg" alt="RosClaw Demo Video" width="380" />
-  </a>
-  &nbsp;&nbsp;
-  <a href="">
-    <img src="assets/thumbnail-2.jpg" alt="RosClaw Demo" width="380" />
-  </a>
-  <br />
-  <em>Click to watch the demos</em>
-</p>
-
-## How It Works
-
-```
-User (WhatsApp/Telegram/Discord/Slack)
-        |
-        v
-OpenClaw Gateway (AI Agent + Tools + Memory)
-        |
-        v  RosClaw Plugin
-rosbridge_server (WebSocket)
-        |
-        v  ROS2 DDS
-Robots: Nav2, MoveIt2, cameras, sensors
+```text
+User -> OpenClaw Gateway -> RosClaw Plugin -> rosbridge_server -> ROS2 robots
 ```
 
-1. A user sends a natural language message through any messaging app
-2. OpenClaw's AI agent receives the message and uses ROS2 tools registered by the RosClaw plugin
-3. The agent translates intent into ROS2 operations (topic publish, service call, action goal)
-4. The robot acts, and the agent streams feedback back to the chat
+## Repository Layout
 
-## Project Structure
-
-```
-rosclaw/
-├── packages/
-│   └── rosbridge-client/         # @rosclaw/rosbridge-client — TypeScript rosbridge WebSocket client
+```text
+.
 ├── extensions/
-│   ├── openclaw-plugin/          # @rosclaw/openclaw-plugin — Core OpenClaw extension
-│   └── openclaw-canvas/          # @rosclaw/openclaw-canvas — Real-time dashboard (Phase 3)
-├── ros2_ws/src/
-│   ├── rosclaw_discovery/        # ROS2 capability auto-discovery node
-│   └── rosclaw_msgs/             # Custom ROS2 message/service definitions
-├── docker/                       # Docker Compose stack
-└── examples/                     # Demo projects
+│   ├── openclaw-plugin/     # Primary OpenClaw extension package
+│   └── openclaw-canvas/     # Canvas/dashboard extension package (early stage)
+├── ros2_ws/                 # ROS2 workspace (discovery, messages, agent)
+├── ui/                      # Vue/Vite dashboard app
+├── docker/                  # Compose files + Dockerfiles for multiple modes
+├── docs/                    # Architecture and testing docs
+├── domain-knowledge/        # Design notes and dashboard planning docs
+└── examples/                # Example scenarios
 ```
 
-## Quick Start
-
-### Prerequisites
+## Requirements
 
 - Node.js 20+
 - pnpm 9+
-- Docker (for simulation)
+- Docker + Docker Compose
+- ROS2 Jazzy (for native ROS workflows outside Docker)
 
-### Install & Build
+## Quick Start
+
+Install dependencies:
 
 ```bash
 pnpm install
-pnpm build
 ```
 
-### Run the Demo Stack
+Type-check all workspace packages:
+
+```bash
+pnpm typecheck
+```
+
+Start the default stack:
 
 ```bash
 docker compose -f docker/docker-compose.yml up --build
 ```
 
-This starts ROS2 + rosbridge + Gazebo + the UI dashboard.
+Default endpoints:
 
-- UI: `http://localhost:4173`
-- rosbridge: `ws://localhost:9090`
+- UI: http://localhost:4173
+- rosbridge: ws://localhost:9090
 
-For a full UI end-to-end test checklist, see `docs/ui-e2e-testing.md`.
+## Docker Compose Modes
 
-### Try It
+- `docker/docker-compose.yml`: default ROS2 + UI stack (optional plugin profile)
+- `docker/docker-compose.dev.yml`: development-focused configuration
+- `docker/docker-compose.local.yml`: local transport mode
+- `docker/docker-compose.robot.yml`: robot-side mode for agent bridge
+- `docker/docker-compose.cloud.yml`: cloud-side mode for WebRTC architecture
 
-Send a message to your robot:
-- **"Move forward 1 meter"** — publishes velocity to `/cmd_vel`
-- **"Navigate to the kitchen"** — sends a Nav2 goal
-- **"What do you see?"** — captures a camera frame
-- **"Check the battery"** — reads `/battery_state`
-- **`/estop`** — emergency stop (bypasses AI)
+## UI Validation
 
-## Packages
+For the full UI ROS2-to-canvas validation flow (including reconnect behavior), use:
 
-| Package | Description |
-|---|---|
-| [`@rosclaw/rosbridge-client`](packages/rosbridge-client/) | Standalone TypeScript client for the rosbridge WebSocket protocol |
-| [`@rosclaw/openclaw-plugin`](extensions/openclaw-plugin/) | OpenClaw extension: tools, hooks, skills, commands for ROS2 control |
-| [`@rosclaw/openclaw-canvas`](extensions/openclaw-canvas/) | Real-time robot dashboard (Phase 3) |
-| [`rosclaw_discovery`](ros2_ws/src/rosclaw_discovery/) | ROS2 Python node for capability auto-discovery |
-| [`rosclaw_msgs`](ros2_ws/src/rosclaw_msgs/) | Custom ROS2 message/service definitions |
+- `docs/ui-e2e-testing.md`
 
-## Agent Tools
+## Key Packages
 
-The AI agent has access to these ROS2 tools:
+- `extensions/openclaw-plugin`: OpenClaw extension with transport abstraction, tools, hooks, and safety checks
+- `extensions/openclaw-canvas`: OpenClaw canvas extension package (early-stage)
+- `ros2_ws/src/rosclaw_discovery`: capability discovery node
+- `ros2_ws/src/rosclaw_msgs`: custom ROS2 message/service definitions
+- `ros2_ws/src/rosclaw_agent`: robot-side bridge node for Mode C deployments
+- `ui`: Vue dashboard application
 
-| Tool | Description |
-|---|---|
-| `ros2_publish` | Publish messages to any ROS2 topic |
-| `ros2_subscribe_once` | Read the latest message from a topic |
-| `ros2_service_call` | Call a ROS2 service |
-| `ros2_action_goal` | Send action goals with feedback (Phase 2) |
-| `ros2_param_get/set` | Get/set ROS2 node parameters |
-| `ros2_list_topics` | Discover available topics |
-| `ros2_camera_snapshot` | Capture a camera frame |
+## Development Commands
 
-## Development
+From repository root:
 
 ```bash
-pnpm install          # Install dependencies
-pnpm build            # Build all packages
-pnpm typecheck        # Type-check without emitting
-pnpm clean            # Remove build artifacts
+pnpm install
+pnpm build
+pnpm typecheck
+pnpm lint
+pnpm clean
 ```
+
+## Documentation
+
+- `docs/architecture.md`
+- `docs/ui-e2e-testing.md`
+- `domain-knowledge/adding_a_unified_dashboard/proposal-for-a-unified-dashboard.md`
+- `domain-knowledge/adding_a_unified_dashboard/spec-for-a-unified-dashboard.md`
+
+## Contributing Workflow
+
+### Branch Naming
+
+Use descriptive branch names by change type:
+
+- `feat/<short-description>` for new features
+- `fix/<short-description>` for bug fixes
+- `chore/<short-description>` for tooling/docs/maintenance
+- `refactor/<short-description>` for structural improvements without behavior changes
+- `test/<short-description>` for test-only changes
+
+Examples:
+
+- `feat/unified-dashboard-shell`
+- `fix/rosbridge-reconnect-loop`
+
+### Pull Request Checklist
+
+Before opening or merging a PR, verify:
+
+1. Scope is focused and matches the PR title.
+2. Behavior changes are documented in `docs/` or `domain-knowledge/` as needed.
+3. New or modified logic includes tests in the same PR.
+4. Any transport changes preserve adapter boundaries and avoid coupling to one transport mode.
+5. Safety-affecting changes include clear operator-facing behavior notes.
+
+### Required Quality Gates
+
+Run from repository root:
+
+```bash
+pnpm typecheck
+pnpm lint
+```
+
+For dashboard-related UI work, also run the UI validation path in:
+
+- `docs/ui-e2e-testing.md`
+
+Policy:
+
+1. Unit and integration tests are required for new behavior.
+2. E2E coverage is required for user-visible flow changes and reconnect/control behavior.
+3. Failing checks block merge.
 
 ## License
 
