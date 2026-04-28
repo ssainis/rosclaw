@@ -275,6 +275,37 @@ Issues encountered and resolved:
 - T3.2 RL REST fallback is complete for degraded-mode state visibility and agent snapshot ingestion.
 - T3.3 Agents MVP view remains the next slice.
 
+### 11) Phase 3 implementation completed (EPIC 3 / T3.3)
+
+#### 11.1 Agents MVP view implementation
+- Added `ui/src/views/AgentsView.vue` and replaced the `/agents` placeholder route with the live view.
+- Agents view now presents:
+  - agent list with status
+  - objective and policy version
+  - last action preview
+  - last reward value
+  - compact status summary counters
+- The view reads from existing domain stores and does not add a parallel data path.
+
+#### 11.2 Live update verification coverage
+- Added component-level view tests in `ui/src/views/AgentsView.unit.test.ts` for:
+  - RL unavailable empty state
+  - visible live updates after status/action/reward event ingestion
+- Extended smoke E2E in `ui/e2e/smoke.spec.ts` with an `/agents` route render check.
+
+#### 11.3 Validation results for T3.3 boundary
+- Focused validation: passed (`ui/src/views/AgentsView.unit.test.ts`, `ui/src/stores/agent.unit.test.ts`, `ui/src/services/rl-connection.integration.test.ts`, `ui/e2e/smoke.spec.ts`).
+- Typecheck: passed.
+- Unit tests: passed (17 tests).
+- Integration tests: passed (12 tests).
+- E2E smoke: passed (2 tests).
+
+#### 11.4 Epic 3 completion status
+- T3.1 complete.
+- T3.2 complete.
+- T3.3 complete.
+- Epic 3 is now complete and validated for the current scope.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -302,12 +333,14 @@ Issues encountered and resolved:
 - ui/src/rl/index.ts
 - ui/src/services/rl-connection.ts
 - ui/src/services/rl-connection.integration.test.ts
+- ui/src/views/AgentsView.vue
+- ui/src/views/AgentsView.unit.test.ts
 
 ## Current status
 - Phase 1 remains complete and validated.
 - Phase 2 EPIC 2 (T2.1, T2.2, T2.3) is complete and validated.
-- EPIC 3 T3.1 and T3.2 are complete and validated.
-- EPIC 3 T3.3 Agents MVP view is the remaining slice.
+- EPIC 3 (T3.1, T3.2, T3.3) is complete and validated.
+- Next planned work begins with EPIC 4.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
@@ -319,6 +352,8 @@ Use this section to keep an atomized record of commits as each phase is complete
 | 2026-04-21 | ce8bb5d | feat: Implement canonical event envelope and associated validation logic | Phase 2 - T2.1 canonical event envelope |
 | 2026-04-21 | 3abe450 | feat: Implement event bus and routing for canonical event envelopes | Phase 2 - T2.2 event bus and routing |
 | 2026-04-21 | 0841bd8 | feat: Complete Phase 2 implementation for EPIC 2, including domain stores, event routing, and associated tests | Phase 2 - T2.3 domain stores baseline |
+| 2026-04-28 | 2960b4b | feat: complete Epic 3 RL runtime and REST fallback | Phase 3 - T3.1 live RL WS + T3.2 REST fallback |
+| 2026-04-28 | TBD (this commit) | feat: complete Epic 3 Agents MVP view | Phase 3 - T3.3 Agents MVP |
 
 ### Ledger update rules
 - Add one row per atomic commit.
