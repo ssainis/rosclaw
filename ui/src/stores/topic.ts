@@ -73,6 +73,12 @@ export const useTopicStore = defineStore("topic", {
       if (!state.selectedTopicName) return [];
       return state.topicMessagesByName[state.selectedTopicName] ?? [];
     },
+    recentMessages(state): TopicMessageRecord[] {
+      const merged = Object.values(state.topicMessagesByName).flat();
+      return merged
+        .slice()
+        .sort((left, right) => right.timestampUiReceived.localeCompare(left.timestampUiReceived));
+    },
     subscribedTopicCount(): number {
       return this.topics.filter((topic) => topic.isSubscribed).length;
     },
