@@ -20,6 +20,7 @@ const navItems = [
   { to: "/timeline", label: "Timeline" },
   { to: "/alerts", label: "Alerts" },
   { to: "/settings", label: "Settings" },
+  { to: "/replay", label: "Replay" },
 ];
 
 const store = useConnectionStore();

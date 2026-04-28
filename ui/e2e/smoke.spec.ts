@@ -442,3 +442,12 @@ test("degraded-mode banner appears when connection is stale and hides when conne
 
   await expect(page.getByTestId("degraded-banner")).toBeHidden({ timeout: 3000 });
 });
+
+test("/replay route renders capture panel and import section", async ({ page }) => {
+  await page.goto("/replay");
+  await expect(page.getByRole("heading", { name: "Replay" })).toBeVisible();
+  await expect(page.getByLabel("Session capture controls")).toBeVisible();
+  await expect(page.getByLabel("Session import")).toBeVisible();
+  await expect(page.getByLabel("Not recording")).toBeVisible();
+  await expect(page.getByLabel("Start recording")).toBeVisible();
+});

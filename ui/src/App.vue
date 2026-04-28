@@ -7,6 +7,7 @@ import { useMissionStore } from "./stores/mission";
 import { useRobotStore } from "./stores/robot";
 import { useTimelineStore } from "./stores/timeline";
 import { useTopicStore } from "./stores/topic";
+import { useSessionCaptureStore } from "./stores/session-capture";
 import {
   ensureDomainEventRouting,
   shutdownDomainEventRouting,
@@ -23,6 +24,7 @@ const missionStore = useMissionStore();
 const alertsStore = useAlertsStore();
 const topicStore = useTopicStore();
 const timelineStore = useTimelineStore();
+const sessionCaptureStore = useSessionCaptureStore();
 
 onMounted(() => {
   ensureRosbridgeConnection();
@@ -34,6 +36,7 @@ onMounted(() => {
     alertsStore,
     topicStore,
     timelineStore,
+    sessionCaptureStore,
   });
 });
 

@@ -7,6 +7,7 @@ import type { useMissionStore } from "../stores/mission";
 import type { useRobotStore } from "../stores/robot";
 import type { useTimelineStore } from "../stores/timeline";
 import type { useTopicStore } from "../stores/topic";
+import type { useSessionCaptureStore } from "../stores/session-capture";
 
 type RobotStore = ReturnType<typeof useRobotStore>;
 type AgentStore = ReturnType<typeof useAgentStore>;
@@ -14,6 +15,7 @@ type MissionStore = ReturnType<typeof useMissionStore>;
 type AlertsStore = ReturnType<typeof useAlertsStore>;
 type TopicStore = ReturnType<typeof useTopicStore>;
 type TimelineStore = ReturnType<typeof useTimelineStore>;
+type SessionCaptureStore = ReturnType<typeof useSessionCaptureStore>;
 
 export interface DomainStores {
   robotStore: RobotStore;
@@ -22,6 +24,7 @@ export interface DomainStores {
   alertsStore: AlertsStore;
   topicStore: TopicStore;
   timelineStore: TimelineStore;
+  sessionCaptureStore?: SessionCaptureStore;
 }
 
 let teardown: (() => void) | null = null;
@@ -34,6 +37,7 @@ function routeToDomainStores(eventBusInstance: EventBus, stores: DomainStores): 
     stores.alertsStore.ingestEnvelope(event);
     stores.topicStore.ingestEnvelope(event);
     stores.timelineStore.ingestEnvelope(event);
+    stores.sessionCaptureStore?.ingestEnvelope(event);
   });
 
   const offMalformed = eventBusInstance.onMalformed((_input, errors) => {

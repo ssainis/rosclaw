@@ -7,6 +7,7 @@ import MetricsView from "../views/MetricsView.vue";
 import TimelineView from "../views/TimelineView.vue";
 import AlertsView from "../views/AlertsView.vue";
 import SettingsView from "../views/SettingsView.vue";
+import ReplayView from "../views/ReplayView.vue";
 import PlaceholderView from "../views/PlaceholderView.vue";
 
 export const routes = [
@@ -55,6 +56,11 @@ export const routes = [
     path: "/settings",
     name: "settings",
     component: SettingsView,
+  },
+  {
+    path: "/replay",
+    name: "replay",
+    component: ReplayView,
   },
 ];
 
