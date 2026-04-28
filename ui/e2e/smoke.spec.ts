@@ -41,6 +41,28 @@ test("alerts view route renders", async ({ page }) => {
   await expect(page.getByTestId("alerts-summary")).toBeVisible();
 });
 
+test("settings layout presets persist across reload", async ({ page }) => {
+  await page.goto("/settings");
+  await page.evaluate(() => {
+    window.localStorage.removeItem("rosclaw.dashboard.layout.v1");
+  });
+  await page.reload();
+
+  await expect(page.getByTestId("settings-view")).toBeVisible();
+  await page.getByTestId("settings-layout-role").selectOption("incident-responder");
+  await page.getByTestId("settings-layout-visible-alerts").click();
+  await expect(page.getByTestId("settings-layout-visible-alerts")).not.toBeChecked();
+  await page.getByTestId("settings-layout-save").click();
+  await expect(page.getByTestId("settings-layout-status")).toContainText("incident-responder");
+
+  await page.goto("/overview");
+  await expect(page.getByTestId("overview-view")).toBeVisible();
+  await expect(page.getByTestId("overview-alerts-panel")).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.getByTestId("overview-alerts-panel")).toHaveCount(0);
+});
+
 test("topics view exposes /odom subscription and validated publish/service flows", async ({ page }) => {
   await page.addInitScript(() => {
     const sentMessages = [];

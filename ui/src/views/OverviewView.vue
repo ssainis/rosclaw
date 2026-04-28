@@ -13,6 +13,7 @@ import { useAlertsStore } from "../stores/alerts";
 import { useConnectionStore } from "../stores/connection";
 import { useMissionStore } from "../stores/mission";
 import { useRobotStore } from "../stores/robot";
+import { useLayoutStore, type OverviewPanelId } from "../stores/layout";
 import { useTopicStore } from "../stores/topic";
 
 const robots = ref<RobotPose[]>([]);
@@ -22,6 +23,7 @@ const agentStore = useAgentStore();
 const missionStore = useMissionStore();
 const alertsStore = useAlertsStore();
 const topicStore = useTopicStore();
+const layoutStore = useLayoutStore();
 let unsubscribe = () => {};
 
 const summaryCards = computed(() => {
@@ -58,6 +60,14 @@ const summaryCards = computed(() => {
 
 const topAlerts = computed(() => alertsStore.alerts.slice(0, 3));
 const recentTopicEvents = computed(() => topicStore.recentMessages.slice(0, 6));
+const orderedOverviewPanels = computed(() => {
+  const hidden = new Set(layoutStore.activePreset.hiddenPanels);
+  return layoutStore.orderedOverviewPanels.filter((panelId) => !hidden.has(panelId));
+});
+
+function isPanel(panelId: OverviewPanelId, value: OverviewPanelId): boolean {
+  return panelId === value;
+}
 
 function mapOdomMessage(msg: Record<string, unknown>): RobotPose | null {
   const pose = (msg.pose as Record<string, unknown> | undefined)?.pose as
@@ -124,72 +134,86 @@ onUnmounted(() => {
     </section>
 
     <section class="overview-grid">
-      <article class="panel" data-testid="overview-canvas-panel">
-        <header>
-          <h2>Mini Canvas</h2>
-          <p>Golden path: `/odom` pose stream rendered in real time.</p>
-        </header>
+      <template v-for="panelId in orderedOverviewPanels" :key="panelId">
+        <article
+          v-if="isPanel(panelId, 'canvas')"
+          class="panel"
+          data-testid="overview-canvas-panel"
+        >
+          <header>
+            <h2>Mini Canvas</h2>
+            <p>Golden path: `/odom` pose stream rendered in real time.</p>
+          </header>
 
-        <RosCanvas
-          :robots="robots"
-          :width="600"
-          :height="360"
-          :world-width="10"
-          :world-height="10"
-        />
+          <RosCanvas
+            :robots="robots"
+            :width="600"
+            :height="360"
+            :world-width="10"
+            :world-height="10"
+          />
 
-        <p v-if="robots.length === 0" class="hint">
-          Waiting for /odom messages from rosbridge...
-        </p>
-      </article>
+          <p v-if="robots.length === 0" class="hint">
+            Waiting for /odom messages from rosbridge...
+          </p>
+        </article>
 
-      <article class="panel" data-testid="overview-alerts-panel">
-        <header>
-          <h2>Top Alerts</h2>
-          <p>Highest-priority active alerts from the canonical alert stream.</p>
-        </header>
+        <article
+          v-else-if="isPanel(panelId, 'alerts')"
+          class="panel"
+          data-testid="overview-alerts-panel"
+        >
+          <header>
+            <h2>Top Alerts</h2>
+            <p>Highest-priority active alerts from the canonical alert stream.</p>
+          </header>
 
-        <p v-if="topAlerts.length === 0" class="hint" data-testid="overview-alerts-empty">
-          No alerts have been raised yet.
-        </p>
+          <p v-if="topAlerts.length === 0" class="hint" data-testid="overview-alerts-empty">
+            No alerts have been raised yet.
+          </p>
 
-        <ul v-else class="alert-list" data-testid="overview-alerts-list">
-          <li v-for="alert in topAlerts" :key="alert.id">
-            <span class="alert-severity" :data-severity="alert.severity">{{ alert.severity }}</span>
-            <span class="alert-message">{{ alert.message }}</span>
-          </li>
-        </ul>
-      </article>
+          <ul v-else class="alert-list" data-testid="overview-alerts-list">
+            <li v-for="alert in topAlerts" :key="alert.id">
+              <span class="alert-severity" :data-severity="alert.severity">{{ alert.severity }}</span>
+              <span class="alert-message">{{ alert.message }}</span>
+            </li>
+          </ul>
+        </article>
 
-      <article class="panel" data-testid="overview-events-panel">
-        <header>
-          <h2>Event Preview</h2>
-          <p>Most recent topic events routed through shared domain stores.</p>
-        </header>
+        <article
+          v-else-if="isPanel(panelId, 'events')"
+          class="panel"
+          data-testid="overview-events-panel"
+        >
+          <header>
+            <h2>Event Preview</h2>
+            <p>Most recent topic events routed through shared domain stores.</p>
+          </header>
 
-        <p v-if="recentTopicEvents.length === 0" class="hint" data-testid="overview-events-empty">
-          No topic events received yet.
-        </p>
+          <p v-if="recentTopicEvents.length === 0" class="hint" data-testid="overview-events-empty">
+            No topic events received yet.
+          </p>
 
-        <div v-else class="event-table-wrap">
-          <table class="event-table" data-testid="overview-events-table">
-            <thead>
-              <tr>
-                <th>Topic</th>
-                <th>Event</th>
-                <th>Received</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="event in recentTopicEvents" :key="event.eventId">
-                <td>{{ event.topic }}</td>
-                <td>{{ event.eventType }}</td>
-                <td>{{ event.timestampUiReceived }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </article>
+          <div v-else class="event-table-wrap">
+            <table class="event-table" data-testid="overview-events-table">
+              <thead>
+                <tr>
+                  <th>Topic</th>
+                  <th>Event</th>
+                  <th>Received</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="event in recentTopicEvents" :key="event.eventId">
+                  <td>{{ event.topic }}</td>
+                  <td>{{ event.eventType }}</td>
+                  <td>{{ event.timestampUiReceived }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </template>
     </section>
   </section>
 </template>

@@ -5,6 +5,7 @@ import { nextTick } from "vue";
 import { buildCanonicalEventEnvelope, resetEventCounterForTests } from "../core/events/envelope";
 import { useAgentStore } from "../stores/agent";
 import { useAlertsStore } from "../stores/alerts";
+import { resetLayoutPersistenceForTests } from "../stores/layout";
 import { useMissionStore } from "../stores/mission";
 import { useRobotStore } from "../stores/robot";
 import { useTopicStore } from "../stores/topic";
@@ -16,6 +17,7 @@ vi.mock("../services/rosbridge-connection", () => ({
 
 describe("OverviewView", () => {
   beforeEach(() => {
+    resetLayoutPersistenceForTests();
     setActivePinia(createPinia());
     resetEventCounterForTests();
   });

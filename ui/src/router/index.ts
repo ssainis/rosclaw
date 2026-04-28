@@ -6,6 +6,7 @@ import ControlView from "../views/ControlView.vue";
 import MetricsView from "../views/MetricsView.vue";
 import TimelineView from "../views/TimelineView.vue";
 import AlertsView from "../views/AlertsView.vue";
+import SettingsView from "../views/SettingsView.vue";
 import PlaceholderView from "../views/PlaceholderView.vue";
 
 export const routes = [
@@ -53,11 +54,7 @@ export const routes = [
   {
     path: "/settings",
     name: "settings",
-    component: PlaceholderView,
-    props: {
-      title: "Settings",
-      description: "Backend, feature flag, and sampling controls land in this view during Phase 2.",
-    },
+    component: SettingsView,
   },
 ];
 

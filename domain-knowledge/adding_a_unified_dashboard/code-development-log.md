@@ -622,6 +622,43 @@ Issues encountered and resolved:
 - Provenance is currently modeled as operator-triggered rosbridge service submissions and does not yet include role-derived authorization metadata.
 - The audit panel is integrated into Mission Timeline for this slice; dedicated export/search workflows remain future work.
 
+### 21) Phase 6 implementation continued (EPIC 6 / T6.2)
+
+#### 21.1 Layout persistence and role presets delivered scope
+- Added a dedicated layout store to support save/load presets by role with local persistence:
+  - roles: `operator`, `rl-engineer`, `incident-responder`
+  - per-role overview panel order and visibility
+  - storage-backed restoration on reload via persisted layout state
+- Replaced the Settings placeholder with a functional settings view for layout management:
+  - role selector
+  - per-panel visibility toggles
+  - per-panel order controls
+  - explicit preset save action and status feedback
+- Wired Overview panel composition to consume the shared layout store so selected role presets are reflected in panel visibility/order without introducing parallel UI data pathways.
+- Added test coverage for layout persistence behavior in unit and smoke E2E flows.
+
+#### 21.2 Files changed for T6.2
+- domain-knowledge/adding_a_unified_dashboard/code-development-log.md
+- ui/e2e/smoke.spec.ts
+- ui/src/router/index.ts
+- ui/src/stores/layout.ts
+- ui/src/stores/layout.unit.test.ts
+- ui/src/views/OverviewView.unit.test.ts
+- ui/src/views/OverviewView.vue
+- ui/src/views/SettingsView.unit.test.ts
+- ui/src/views/SettingsView.vue
+
+#### 21.3 Validation results for T6.2
+- Typecheck: passed (`pnpm --filter @rosclaw/ui typecheck`).
+- Unit tests: passed (`pnpm --filter @rosclaw/ui test:unit`, 43 tests).
+- Integration tests: passed (`pnpm --filter @rosclaw/ui test:integration`, 20 tests).
+- E2E smoke: passed (`pnpm --filter @rosclaw/ui test:e2e -- ui/e2e/smoke.spec.ts`, 9 tests).
+
+#### 21.4 Known limitations after T6.2
+- Layout persistence currently targets Overview panels only; other views still use fixed internal panel composition.
+- Presets are stored in browser local storage for the current client and are not synchronized across operators or environments.
+- Role presets currently control layout behavior, not authorization or control-surface permissions.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -682,6 +719,8 @@ Issues encountered and resolved:
 - EPIC 5 / T5.4 Alerts and safety panel is complete and validated.
 - EPIC 5 (T5.1-T5.4) is complete and validated for this branch scope.
 - EPIC 6 / T6.1 Audit trail UI and API wiring is complete and validated.
+- EPIC 6 / T6.2 Layout persistence and role presets is complete and validated.
+- EPIC 6 / T6.2 Layout persistence and role presets is complete and validated.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
