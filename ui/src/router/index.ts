@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import OverviewView from "../views/OverviewView.vue";
 import AgentsView from "../views/AgentsView.vue";
 import TopicsView from "../views/TopicsView.vue";
+import ControlView from "../views/ControlView.vue";
 import PlaceholderView from "../views/PlaceholderView.vue";
 
 export const routes = [
@@ -29,11 +30,7 @@ export const routes = [
   {
     path: "/control",
     name: "control",
-    component: PlaceholderView,
-    props: {
-      title: "Control Center",
-      description: "Guided intervention and command workflows land in this view during Phase 2.",
-    },
+    component: ControlView,
   },
   {
     path: "/metrics",

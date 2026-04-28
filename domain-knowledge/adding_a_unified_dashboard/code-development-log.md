@@ -389,6 +389,39 @@ Issues encountered and resolved:
 - Publish and service forms live inside the Topics view for this slice; dedicated control workflows remain deferred to T4.3.
 - Service responses are currently shown as raw formatted JSON; richer typed response rendering remains future work.
 
+### 14) Phase 4 implementation continued (EPIC 4 / T4.3)
+
+#### 14.1 Control center MVP delivered scope
+- Replaced the `/control` placeholder with a dedicated Control Center view for guided mode and scenario operations.
+- Added explicit mode controls for `manual`, `assist`, and `autonomous`, including an inline confirmation gate before switching into autonomous mode.
+- Added scenario controls for start and reset episode flows with explicit scenario ID and comma-separated multi-agent target inputs.
+- Added a focused control action store to track submission state, pending buttons, recent action history, trace identifiers, endpoint provenance, and transport outcomes.
+- Added a control-center service layer that reuses the existing rosbridge service-call path and operator event bus, and publishes mission-state snapshots back through the canonical routing path after successful submissions.
+- Added smoke, unit, and integration coverage for command submit path behavior, pending/result state transitions, and visible action provenance on `/control`.
+
+#### 14.2 Files changed for T4.3
+- domain-knowledge/adding_a_unified_dashboard/code-development-log.md
+- ui/e2e/smoke.spec.ts
+- ui/src/router/index.ts
+- ui/src/services/control-center.integration.test.ts
+- ui/src/services/control-center.ts
+- ui/src/stores/control.ts
+- ui/src/stores/control.unit.test.ts
+- ui/src/views/ControlView.unit.test.ts
+- ui/src/views/ControlView.vue
+
+#### 14.3 Validation results for T4.3
+- Focused validation: passed (`src/stores/control.unit.test.ts`, `src/services/control-center.integration.test.ts`, `src/views/ControlView.unit.test.ts`).
+- Typecheck: passed.
+- Unit tests: passed (31 tests).
+- Integration tests: passed (18 tests).
+- E2E smoke: passed (4 tests), including mode confirmation, mode switch, scenario start, and visible action provenance coverage on `/control`.
+
+#### 14.4 Known limitations after T4.3
+- Control endpoints and service types are currently dashboard-configurable defaults for the MVP because the repository does not yet expose a finalized backend control-service contract for mode and scenario actions.
+- The control center currently covers single-mode and scenario actions with comma-separated multi-agent targeting, but does not yet provide richer batch orchestration workflows or role-based gating.
+- Prominent global E-stop entry, confirmation, and audit assertions remain intentionally deferred to T4.4.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -426,6 +459,12 @@ Issues encountered and resolved:
 - ui/src/views/TopicsView.unit.test.ts
 - ui/src/core/ros/forms.ts
 - ui/src/core/ros/forms.unit.test.ts
+- ui/src/stores/control.ts
+- ui/src/stores/control.unit.test.ts
+- ui/src/services/control-center.ts
+- ui/src/services/control-center.integration.test.ts
+- ui/src/views/ControlView.vue
+- ui/src/views/ControlView.unit.test.ts
 
 ## Current status
 - Phase 1 remains complete and validated.
@@ -433,7 +472,8 @@ Issues encountered and resolved:
 - EPIC 3 (T3.1, T3.2, T3.3) is complete and validated.
 - EPIC 4 / T4.1 Topics explorer MVP is complete and validated.
 - EPIC 4 / T4.2 Publish and service forms is complete and validated.
-- Next planned work is EPIC 4 / T4.3 Control center MVP.
+- EPIC 4 / T4.3 Control center MVP is complete and validated.
+- Next planned work after T4.3 validation is EPIC 4 / T4.4 E-stop entry and confirmation.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
@@ -447,8 +487,9 @@ Use this section to keep an atomized record of commits as each phase is complete
 | 2026-04-21 | 0841bd8 | feat: Complete Phase 2 implementation for EPIC 2, including domain stores, event routing, and associated tests | Phase 2 - T2.3 domain stores baseline |
 | 2026-04-28 | 2960b4b | feat: complete Epic 3 RL runtime and REST fallback | Phase 3 - T3.1 live RL WS + T3.2 REST fallback |
 | 2026-04-28 | c8cc455 | feat: complete Epic 3 Agents MVP view | Phase 3 - T3.3 Agents MVP |
-| 2026-04-28 | TBD (this commit) | feat: complete Epic 4 T4.1 Topics explorer MVP | Phase 4 - T4.1 topics explorer MVP |
-| 2026-04-28 | TBD (this commit) | feat: complete Epic 4 T4.2 publish and service forms | Phase 4 - T4.2 publish and service forms |
+| 2026-04-28 | 5db3686 | feat: complete Epic 4 T4.1 Topics explorer MVP | Phase 4 - T4.1 topics explorer MVP |
+| 2026-04-28 | f308ad2 | feat: complete Epic 4 T4.2 publish and service forms | Phase 4 - T4.2 publish and service forms |
+| 2026-04-28 | TBD (this commit) | feat: complete Epic 4 T4.3 control center MVP | Phase 4 - T4.3 control center MVP |
 
 ### Ledger update rules
 - Add one row per atomic commit.

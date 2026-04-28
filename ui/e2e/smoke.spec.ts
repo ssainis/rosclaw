@@ -171,3 +171,108 @@ test("topics view exposes /odom subscription and validated publish/service flows
     ]),
   );
 });
+
+test("control view submits mode and scenario actions with visible provenance", async ({ page }) => {
+  await page.addInitScript(() => {
+    const sentMessages = [];
+    window.__rosbridgeSentMessages = sentMessages;
+
+    class MockSocket {
+      static instances = [];
+
+      onopen = null;
+      onclose = null;
+      onerror = null;
+      onmessage = null;
+
+      constructor(url) {
+        this.url = url;
+        MockSocket.instances.push(this);
+        queueMicrotask(() => {
+          this.onopen?.();
+        });
+      }
+
+      send(data) {
+        const message = JSON.parse(data);
+        sentMessages.push(message);
+
+        if (message.op === "call_service" && message.service === "/control/set_mode") {
+          queueMicrotask(() => {
+            this.onmessage?.({
+              data: JSON.stringify({
+                op: "service_response",
+                id: message.id,
+                service: "/control/set_mode",
+                result: true,
+                values: {
+                  success: true,
+                  mode: message.args?.mode,
+                },
+              }),
+            });
+          });
+          return;
+        }
+
+        if (message.op === "call_service" && message.service === "/scenario/start_episode") {
+          queueMicrotask(() => {
+            this.onmessage?.({
+              data: JSON.stringify({
+                op: "service_response",
+                id: message.id,
+                service: "/scenario/start_episode",
+                result: true,
+                values: {
+                  success: true,
+                  episode_id: "ep-7",
+                },
+              }),
+            });
+          });
+          return;
+        }
+      }
+
+      close() {
+        this.onclose?.();
+      }
+    }
+
+    window.WebSocket = MockSocket;
+  });
+
+  await page.goto("/control");
+
+  await expect(page.getByTestId("control-view")).toBeVisible();
+  await page.getByTestId("control-mode-autonomous").click();
+  await expect(page.getByTestId("control-error")).toContainText("Confirm switching into autonomous");
+
+  await page.getByTestId("control-mode-confirm").check();
+  await page.getByTestId("control-mode-autonomous").click();
+  await expect(page.getByTestId("control-status")).toContainText("Mode switched to autonomous");
+  await expect(page.getByTestId("control-summary")).toContainText("autonomous");
+
+  await page.getByTestId("control-scenario-id").fill("warehouse-a");
+  await page.getByTestId("control-agent-targets").fill("agent-1, agent-2");
+  await page.getByTestId("control-start-episode").click();
+  await expect(page.getByTestId("control-status")).toContainText("Episode started for warehouse-a");
+  await expect(page.getByTestId("control-action-history")).toContainText("Switch to autonomous");
+  await expect(page.getByTestId("control-action-history")).toContainText("Start episode");
+
+  const sentMessages = await page.evaluate(() => window.__rosbridgeSentMessages);
+  expect(sentMessages).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        op: "call_service",
+        service: "/control/set_mode",
+        type: "rosclaw_msgs/srv/SetMode",
+      }),
+      expect.objectContaining({
+        op: "call_service",
+        service: "/scenario/start_episode",
+        type: "rosclaw_msgs/srv/ScenarioControl",
+      }),
+    ]),
+  );
+});
