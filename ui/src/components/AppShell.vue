@@ -21,6 +21,7 @@ const navItems = [
   { to: "/alerts", label: "Alerts" },
   { to: "/settings", label: "Settings" },
   { to: "/replay", label: "Replay" },
+  { to: "/episodes", label: "Episodes" },
 ];
 
 const store = useConnectionStore();

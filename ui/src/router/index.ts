@@ -8,6 +8,7 @@ import TimelineView from "../views/TimelineView.vue";
 import AlertsView from "../views/AlertsView.vue";
 import SettingsView from "../views/SettingsView.vue";
 import ReplayView from "../views/ReplayView.vue";
+import EpisodeComparisonView from "../views/EpisodeComparisonView.vue";
 import PlaceholderView from "../views/PlaceholderView.vue";
 
 export const routes = [
@@ -61,6 +62,11 @@ export const routes = [
     path: "/replay",
     name: "replay",
     component: ReplayView,
+  },
+  {
+    path: "/episodes",
+    name: "episodes",
+    component: EpisodeComparisonView,
   },
 ];
 

@@ -451,3 +451,11 @@ test("/replay route renders capture panel and import section", async ({ page }) 
   await expect(page.getByLabel("Not recording")).toBeVisible();
   await expect(page.getByLabel("Start recording")).toBeVisible();
 });
+
+test("/episodes route renders comparison setup panel", async ({ page }) => {
+  await page.goto("/episodes");
+  await expect(page.getByRole("heading", { name: "Episode Comparison & Analysis" })).toBeVisible();
+  await expect(page.getByLabel("Comparison setup")).toBeVisible();
+  // Should show hint since no session loaded
+  await expect(page.getByText("Load a session")).toBeVisible();
+});
