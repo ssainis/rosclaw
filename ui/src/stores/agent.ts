@@ -8,6 +8,8 @@ export interface AgentSnapshot {
   status: AgentStatus;
   objective: string | null;
   policyVersion: string | null;
+  lastReward: number | null;
+  lastAction: string | null;
   lastSourceTimestamp: string;
   lastUiReceivedTimestamp: string;
 }
@@ -27,6 +29,19 @@ function coerceAgentStatus(value: unknown): AgentStatus {
   if (value === "paused") return "paused";
   if (value === "error") return "error";
   return "unknown";
+}
+
+function defaultSnapshot(id: string): AgentSnapshot {
+  return {
+    id,
+    status: "unknown",
+    objective: null,
+    policyVersion: null,
+    lastReward: null,
+    lastAction: null,
+    lastSourceTimestamp: "",
+    lastUiReceivedTimestamp: "",
+  };
 }
 
 export const useAgentStore = defineStore("agent", {
@@ -60,15 +75,48 @@ export const useAgentStore = defineStore("agent", {
       if (event.entity_type !== "agent") return;
 
       const payload = asRecord(event.payload);
-      const objective = typeof payload?.objective === "string" ? payload.objective : null;
-      const policyVersion =
-        typeof payload?.policy_version === "string" ? payload.policy_version : null;
+      const current = this.agentsById[event.entity_id] ?? defaultSnapshot(event.entity_id);
+
+      if (event.event_type === "agent:status") {
+        const objective = typeof payload?.objective === "string" ? payload.objective : current.objective;
+        const policyVersion =
+          typeof payload?.policy_version === "string"
+            ? payload.policy_version
+            : current.policyVersion;
+
+        this.agentsById[event.entity_id] = {
+          ...current,
+          status: coerceAgentStatus(payload?.status),
+          objective,
+          policyVersion,
+          lastSourceTimestamp: event.timestamp_source,
+          lastUiReceivedTimestamp: event.timestamp_ui_received,
+        };
+        return;
+      }
+
+      if (event.event_type === "agent:reward") {
+        this.agentsById[event.entity_id] = {
+          ...current,
+          lastReward: typeof payload?.reward === "number" ? payload.reward : current.lastReward,
+          lastSourceTimestamp: event.timestamp_source,
+          lastUiReceivedTimestamp: event.timestamp_ui_received,
+        };
+        return;
+      }
+
+      if (event.event_type === "agent:action") {
+        this.agentsById[event.entity_id] = {
+          ...current,
+          lastAction: typeof payload?.action === "string" ? payload.action : current.lastAction,
+          lastSourceTimestamp: event.timestamp_source,
+          lastUiReceivedTimestamp: event.timestamp_ui_received,
+        };
+        return;
+      }
 
       this.agentsById[event.entity_id] = {
-        id: event.entity_id,
-        status: coerceAgentStatus(payload?.status),
-        objective,
-        policyVersion,
+        ...current,
         lastSourceTimestamp: event.timestamp_source,
         lastUiReceivedTimestamp: event.timestamp_ui_received,
       };

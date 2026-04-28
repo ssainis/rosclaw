@@ -5,7 +5,7 @@ This log records all meaningful implementation activity completed so far for the
 
 ## Repository Context
 - Repository: PlaiPin/rosclaw
-- Branch: fix/docker-compose-sync-ui-e2e
+- Branch: adding-a-unified-dashboard
 - Plan source: domain-knowledge/adding_a_unified_dashboard/plan-for-a-unified-dashboard.md
 - Spec source: domain-knowledge/adding_a_unified_dashboard/spec-for-a-unified-dashboard.md
 
@@ -191,6 +191,53 @@ Issues encountered and resolved:
 - Integration tests: passed (8 tests).
 - E2E smoke: passed (`shell and overview render`) because app lifecycle and user-visible data plumbing were touched.
 
+### 9) Phase 3 implementation started (EPIC 3 / T3.1)
+
+#### 9.1 Latest commit confirmation
+- Confirmed latest completed branch commit is `0841bd8` on `adding-a-unified-dashboard`.
+- Commit subject: `feat: Complete Phase 2 implementation for EPIC 2, including domain stores, event routing, and associated tests`.
+- This establishes Phase 2 EPIC 2 as the last committed baseline before starting RL ingest work.
+
+#### 9.2 RL WebSocket adapter ingest slice
+- Added RL WebSocket ingest adapter in `ui/src/services/rl-ws-adapter.ts`.
+- Added tolerant normalization for unresolved RL contract variants so replayed messages can still map into canonical envelopes when they provide:
+  - event kind (`type`, `event`, or `kind`)
+  - agent identity (`agent_id`, `agentId`, or nested `agent.id`)
+  - optional source timestamp (`timestamp`, `ts`, `created_at`)
+  - optional trace id (`trace_id`, `traceId`)
+- Canonical event mapping added for:
+  - agent status -> `agent:status`
+  - reward stream -> `agent:reward`
+  - action stream -> `agent:action`
+- All normalized RL events use canonical envelope source `rl-ws` and entity type `agent`.
+
+#### 9.3 Agent store merge safety for RL events
+- Updated `ui/src/stores/agent.ts` so non-status RL agent events no longer overwrite a valid agent status snapshot with `unknown`.
+- Added incremental merge behavior for:
+  - `agent:status` -> status/objective/policy version
+  - `agent:reward` -> `lastReward`
+  - `agent:action` -> `lastAction`
+- This preserves the existing domain-store baseline while allowing reward/action ingestion to start before the Agents MVP view is built.
+
+#### 9.4 Test coverage added for T3.1 ingest slice
+- Added integration tests in `ui/src/services/rl-ws-adapter.integration.test.ts` covering:
+  - replayed RL fixture stream normalization into canonical events
+  - bus publication of status/reward/action events
+  - domain store update from normalized status event plus reward/action merge behavior
+  - malformed RL message containment before bus publication
+- Extended `ui/src/stores/agent.unit.test.ts` to verify reward/action events do not clobber running agent status.
+
+#### 9.5 Validation results for this slice
+- Focused validation: passed (`ui/src/services/rl-ws-adapter.integration.test.ts`, `ui/src/stores/agent.unit.test.ts`).
+- Typecheck: passed.
+- Unit tests: passed (14 tests).
+- Integration tests: passed (10 tests).
+- E2E smoke: passed (`shell and overview render`).
+
+#### 9.6 Scope boundary for this atomic slice
+- Completed only the T3.1 ingest start requested here: RL WebSocket message normalization into canonical events plus safe agent-store handling.
+- Live RL WebSocket connection lifecycle, runtime app wiring, REST fallback, and Agents view work remain out of scope for this atomic commit.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -212,21 +259,25 @@ Issues encountered and resolved:
 - ui/package.json
 - ui/.gitignore
 - pnpm-lock.yaml
+- ui/src/services/rl-ws-adapter.ts
+- ui/src/services/rl-ws-adapter.integration.test.ts
 
 ## Current status
 - Phase 1 remains complete and validated.
 - Phase 2 EPIC 2 (T2.1, T2.2, T2.3) is complete and validated.
-- Work is paused at the end of this atomic phase slice before EPIC 3 / T3.1.
+- EPIC 3 / T3.1 has started with the initial RL canonical ingest slice complete and validated.
+- Live RL transport wiring and downstream RL UI surfaces remain intentionally unstarted in this slice.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
 
 | Date (UTC) | Commit | Message | Scope |
 |---|---|---|---|
-| TBD | TBD | TBD | Phase 1 |
-| 2026-04-21 | TBD | TBD | Phase 2 - T2.1 canonical event envelope |
-| 2026-04-21 | TBD | TBD | Phase 2 - T2.2 event bus and routing |
-| 2026-04-21 | TBD | TBD | Phase 2 - T2.3 domain stores baseline |
+| 2026-04-21 | 442c23b | feat: Add unified dashboard documentation and implementation plans | Planning docs and implementation blueprint |
+| 2026-04-21 | 4ab29c7 | feat: Refactor Rosbridge connection and UI components | Phase 1 foundation, shell path, and rosbridge lifecycle baseline |
+| 2026-04-21 | ce8bb5d | feat: Implement canonical event envelope and associated validation logic | Phase 2 - T2.1 canonical event envelope |
+| 2026-04-21 | 3abe450 | feat: Implement event bus and routing for canonical event envelopes | Phase 2 - T2.2 event bus and routing |
+| 2026-04-21 | 0841bd8 | feat: Complete Phase 2 implementation for EPIC 2, including domain stores, event routing, and associated tests | Phase 2 - T2.3 domain stores baseline |
 
 ### Ledger update rules
 - Add one row per atomic commit.
