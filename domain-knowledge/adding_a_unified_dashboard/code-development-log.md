@@ -723,6 +723,10 @@ Issues encountered and resolved:
 - EPIC 6 / T6.3 Performance hardening is complete and validated.
 - EPIC 6 / T6.4 Reliability hardening is complete and validated.
 - EPIC 6 (T6.1-T6.4) is complete and validated for this branch scope.
+- EPIC 7 / T7.1 Session capture model is complete and validated.
+- EPIC 7 / T7.2 Replay engine and scrubber is complete and validated.
+- EPIC 7 / T7.3 Episode comparison and anomaly indicators is complete and validated.
+- EPIC 7 (T7.1-T7.3) is complete and validated for this branch scope.
 
 ### 23) EPIC 6 / T6.4 Reliability hardening
 
@@ -808,9 +812,95 @@ Use this section to keep an atomized record of commits as each phase is complete
 | 2026-04-28 | cf66dad | feat: complete Epic 6 T6.1 audit trail UI and API wiring | Epic 6 - T6.1 audit trail |
 | 2026-04-28 | 9d95d32 | feat: complete Epic 6 T6.2 layout persistence and role presets | Epic 6 - T6.2 layout persistence |
 | 2026-04-28 | 66e5b8b | feat: complete Epic 6 T6.3 performance hardening | Epic 6 - T6.3 perf hardening |
+| 2026-04-28 | 66d14eb | feat: complete Epic 6 T6.4 reliability hardening | Epic 6 - T6.4 reliability hardening |
+| 2026-04-28 | 5ab8b6d | feat: complete Epic 7 T7.1 session capture model | Phase 3 - T7.1 session capture and export/import |
+| 2026-04-28 | 6d6860a | feat: complete Epic 7 T7.2 replay engine and synchronized scrubber | Phase 3 - T7.2 deterministic replay and scrubber |
+| 2026-04-28 | 139967f | feat: complete Epic 7 T7.3 episode comparison and anomaly indicators | Phase 3 - T7.3 episode comparison and anomaly analysis |
 
 ### Ledger update rules
 - Add one row per atomic commit.
 - Prefer one commit per completed phase slice.
 - Include abbreviated commit SHA (7-12 chars).
 - Keep scope explicit (for example: "Phase 2 - event envelope + bus").
+
+### 24) Phase 3 implementation completed (EPIC 7 / T7.1-T7.3)
+
+#### 24.1 T7.1 Session capture model delivered scope
+- Added `ui/src/stores/session-capture.ts` to record and playback normalized event streams from the canonical timeline.
+- Capture lifecycle: `startCapture(label)` → `ingestEnvelope(event)` → `stopCapture()` → `exportSession(json)` / `importSession(json)`.
+- Wired capture store into domain-event-routing so all canonical envelopes are captured while recording.
+- Added `ReplayView.vue` with capture controls and import/file-upload interface.
+- Export creates `.json` files with metadata (session_id, label, timestamps, event_count, sources).
+- Import validates schema and loads sessions for replay downstream.
+
+#### 24.2 T7.1 Files changed
+- ui/src/stores/session-capture.ts
+- ui/src/stores/session-capture.unit.test.ts
+- ui/src/stores/session-capture.integration.test.ts
+- ui/src/views/ReplayView.vue
+- ui/src/views/ReplayView.unit.test.ts
+- ui/src/router/index.ts (added /replay route)
+- ui/src/components/AppShell.vue (added Replay nav link)
+- ui/src/services/domain-event-routing.ts (added sessionCaptureStore)
+- ui/src/App.vue (wired capture store initialization)
+- ui/e2e/smoke.spec.ts (added /replay route smoke test)
+
+#### 24.3 Validation results for T7.1
+- Typecheck: passed.
+- Unit tests: passed (74 tests).
+- Integration tests: passed (24 tests).
+- E2E smoke: passed (11 tests).
+
+#### 24.4 T7.2 Replay engine and synchronized scrubber delivered scope
+- Added `ui/src/services/replay-engine.ts` with deterministic event playback.
+- Engine loads a `SessionCaptureFile` and replays events into the event bus with time-scaled delays.
+- Playback controls: play/pause/stop, seekTo(index), setSpeed(multiplier).
+- Speed 0 = instant, speed 1.0 = real-time, speed 2.0 = 2× playback.
+- Events are sorted chronologically on load and published in order.
+- UI scrubber in ReplayView allows seeking via range input and displays event position.
+- Speed buttons allow on-the-fly speed adjustment during or before playback.
+- State handler pattern allows reactive UI updates (current PLAYING/PAUSED/IDLE/ENDED status and position).
+
+#### 24.5 T7.2 Files changed
+- ui/src/services/replay-engine.ts
+- ui/src/services/replay-engine.integration.test.ts
+- ui/src/views/ReplayView.vue (added scrubber UI)
+- ui/src/views/ReplayView.unit.test.ts (added replay controls tests)
+
+#### 24.6 Validation results for T7.2
+- Typecheck: passed.
+- Unit tests: passed (75 tests).
+- Integration tests: passed (35 tests).
+- E2E smoke: passed (11 tests).
+
+#### 24.7 T7.3 Episode comparison and anomaly indicators delivered scope
+- Added `ui/src/services/episode-analysis.ts` to compare two replay sessions and surface anomalies.
+- Comparison metrics: reward_avg, action_count, event_count, sequence_divergence.
+- Anomaly detection: reward delta > 10%, action delta > 20%, sequence divergence > 15%.
+- Severity levels: error (degradation), warning (divergence), info (improvement).
+- Recommendation engine: suggests performance assessment and investigation guidance based on deltas.
+- Added `EpisodeComparisonView.vue` with session selector, metrics cards, anomaly indicators, and recommendations.
+- Metrics displayed with before/after values, delta, and delta percentage for easy comparison.
+- Anomaly badges show severity color-coded (error=red, warning=orange, info=blue).
+
+#### 24.8 T7.3 Files changed
+- ui/src/services/episode-analysis.ts
+- ui/src/services/episode-analysis.unit.test.ts
+- ui/src/views/EpisodeComparisonView.vue
+- ui/src/views/EpisodeComparisonView.unit.test.ts
+- ui/src/router/index.ts (added /episodes route)
+- ui/src/components/AppShell.vue (added Episodes nav link)
+- ui/e2e/smoke.spec.ts (added /episodes route smoke test)
+
+#### 24.9 Validation results for T7.3
+- Typecheck: passed.
+- Unit tests: passed (86 tests).
+- Integration tests: passed (35 tests).
+- E2E smoke: passed (12 tests).
+
+#### 24.10 Epic 7 completion status
+- T7.1 complete: session capture model fully functional with export/import round-tripping.
+- T7.2 complete: deterministic replay engine with synchronized scrubber for guided playback.
+- T7.3 complete: episode comparison with anomaly detection and recommendations.
+- Epic 7 (T7.1-T7.3) is now complete and validated for Phase 3.
+- New routes: `/replay` (capture and playback), `/episodes` (comparison).
