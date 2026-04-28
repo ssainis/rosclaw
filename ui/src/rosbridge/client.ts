@@ -114,13 +114,16 @@ export class RosbridgeClient {
   callService(
     service: string,
     args: Record<string, unknown> = {},
-    timeoutMs = 5000,
+    typeOrTimeout?: string | number,
+    timeoutMsMaybe = 5000,
   ): Promise<Record<string, unknown>> {
     if (!this.ws || this.status !== "connected") {
       return Promise.reject(new Error("Not connected to rosbridge server"));
     }
 
     const id = this.nextId("svc");
+    const type = typeof typeOrTimeout === "string" ? typeOrTimeout : undefined;
+    const timeoutMs = typeof typeOrTimeout === "number" ? typeOrTimeout : timeoutMsMaybe;
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -135,6 +138,7 @@ export class RosbridgeClient {
         id,
         service,
         args,
+        ...(type ? { type } : {}),
       });
     });
   }
@@ -252,7 +256,12 @@ export class RosbridgeClient {
 
     if (message.result === false) {
       const service = typeof message.service === "string" ? message.service : "unknown-service";
-      pending.reject(new Error(`rosbridge service call failed: ${service}`));
+      const values = message.values;
+      const detail =
+        typeof values === "object" && values !== null && typeof values.error === "string"
+          ? ` (${values.error})`
+          : "";
+      pending.reject(new Error(`rosbridge service call failed: ${service}${detail}`));
       return;
     }
 

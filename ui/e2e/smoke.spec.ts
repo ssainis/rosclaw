@@ -17,8 +17,11 @@ test("agents view route renders", async ({ page }) => {
   await expect(page.getByTestId("agents-summary")).toBeVisible();
 });
 
-test("topics view exposes /odom subscription and message viewer", async ({ page }) => {
+test("topics view exposes /odom subscription and validated publish/service flows", async ({ page }) => {
   await page.addInitScript(() => {
+    const sentMessages = [];
+    window.__rosbridgeSentMessages = sentMessages;
+
     class MockSocket {
       static instances = [];
 
@@ -37,6 +40,7 @@ test("topics view exposes /odom subscription and message viewer", async ({ page 
 
       send(data) {
         const message = JSON.parse(data);
+        sentMessages.push(message);
 
         if (message.op === "call_service" && message.service === "/rosapi/topics") {
           queueMicrotask(() => {
@@ -46,23 +50,49 @@ test("topics view exposes /odom subscription and message viewer", async ({ page 
                 id: message.id,
                 service: "/rosapi/topics",
                 result: true,
-                values: { topics: ["/scan", "/odom"] },
+                values: {
+                  topics: ["/scan", "/odom", "/cmd_vel"],
+                  types: [
+                    "sensor_msgs/msg/LaserScan",
+                    "nav_msgs/Odometry",
+                    "geometry_msgs/msg/Twist",
+                  ],
+                },
               }),
             });
           });
           return;
         }
 
-        if (message.op === "call_service" && message.service === "/rosapi/topic_type") {
+        if (message.op === "call_service" && message.service === "/rosapi/services") {
           queueMicrotask(() => {
             this.onmessage?.({
               data: JSON.stringify({
                 op: "service_response",
                 id: message.id,
-                service: "/rosapi/topic_type",
+                service: "/rosapi/services",
                 result: true,
                 values: {
-                  type: message.args?.topic === "/odom" ? "nav_msgs/Odometry" : "sensor_msgs/msg/LaserScan",
+                  services: ["/robot/get_capabilities"],
+                  types: ["rosclaw_msgs/srv/GetCapabilities"],
+                },
+              }),
+            });
+          });
+          return;
+        }
+
+        if (message.op === "call_service" && message.service === "/robot/get_capabilities") {
+          queueMicrotask(() => {
+            this.onmessage?.({
+              data: JSON.stringify({
+                op: "service_response",
+                id: message.id,
+                service: "/robot/get_capabilities",
+                result: true,
+                values: {
+                  success: true,
+                  manifest: { robot_name: "demo" },
                 },
               }),
             });
@@ -105,4 +135,39 @@ test("topics view exposes /odom subscription and message viewer", async ({ page 
   await page.getByTestId("topic-toggle-_odom").click();
   await expect(page.getByTestId("topic-message-viewer")).toContainText("topic:/odom");
   await expect(page.getByTestId("topic-message-viewer")).toContainText('"x": 1.5');
+
+  await page.getByText("/cmd_vel").click();
+  await page.getByTestId("publish-payload").fill('{"linear": {"x": "fast"}}');
+  await page.getByTestId("publish-submit").click();
+  await expect(page.getByTestId("publish-error")).toContainText("linear.x must be a number");
+
+  await page.getByTestId("publish-payload").fill(
+    '{"linear": {"x": 0.4, "y": 0, "z": 0}, "angular": {"x": 0, "y": 0, "z": 0.2}}',
+  );
+  await page.getByTestId("publish-submit").click();
+  await expect(page.getByTestId("publish-status")).toContainText("Published to /cmd_vel");
+
+  await page.getByTestId("services-table").getByRole("cell", { name: "/robot/get_capabilities" }).click();
+  await page.getByTestId("service-payload").fill('{"robot_namespace": "/demo"}');
+  await page.getByTestId("service-submit").click();
+  await expect(page.getByTestId("service-status")).toContainText(
+    "Service call completed for /robot/get_capabilities",
+  );
+  await expect(page.getByTestId("service-response")).toContainText('"robot_name": "demo"');
+
+  const sentMessages = await page.evaluate(() => window.__rosbridgeSentMessages);
+  expect(sentMessages).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        op: "publish",
+        topic: "/cmd_vel",
+        type: "geometry_msgs/msg/Twist",
+      }),
+      expect.objectContaining({
+        op: "call_service",
+        service: "/robot/get_capabilities",
+        type: "rosclaw_msgs/srv/GetCapabilities",
+      }),
+    ]),
+  );
 });

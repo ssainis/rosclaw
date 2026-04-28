@@ -349,6 +349,46 @@ Issues encountered and resolved:
 - Filter scope is MVP text filtering only; dedicated namespace/type/rate controls remain future work.
 - Message inspection currently shows the latest payload with metadata and raw JSON; publish forms and service invocation are intentionally deferred to T4.2.
 
+### 13) Phase 4 implementation continued (EPIC 4 / T4.2)
+
+#### 13.1 Publish and service forms delivered scope
+- Extended the Topics view with schema-aware publish and service-call forms without introducing a new data pipeline.
+- Added a lightweight ROS validation registry under `ui/src/core/ros/forms.ts` for known message and service contracts used in this repository:
+  - `geometry_msgs/msg/Twist`
+  - `std_srvs/srv/Trigger`
+  - `std_srvs/srv/SetBool`
+  - `rosclaw_msgs/srv/GetCapabilities`
+- Added service discovery via rosapi (`/rosapi/services`) and surfaced discovered services alongside the existing topic explorer.
+- Added typed rosbridge service-call support so service invocations can include the requested service type when available.
+- Added publish execution and service-call execution helpers in the existing topic-explorer service, with operator event-bus publication for both actions.
+- Added Topics view validation UX so invalid payloads are blocked locally and surfaced with clear error text before any transport request is sent.
+
+#### 13.2 Files changed for T4.2
+- domain-knowledge/adding_a_unified_dashboard/code-development-log.md
+- ui/e2e/smoke.spec.ts
+- ui/src/core/ros/forms.ts
+- ui/src/core/ros/forms.unit.test.ts
+- ui/src/rosbridge/client.integration.test.ts
+- ui/src/rosbridge/client.ts
+- ui/src/services/topic-explorer.integration.test.ts
+- ui/src/services/topic-explorer.ts
+- ui/src/stores/topic.ts
+- ui/src/stores/topic.unit.test.ts
+- ui/src/views/TopicsView.unit.test.ts
+- ui/src/views/TopicsView.vue
+
+#### 13.3 Validation results for T4.2
+- Focused validation: passed (`src/core/ros/forms.unit.test.ts`, `src/rosbridge/client.integration.test.ts`, `src/services/topic-explorer.integration.test.ts`, `src/views/TopicsView.unit.test.ts`, `src/stores/topic.unit.test.ts`).
+- Typecheck: passed.
+- Unit tests: passed (27 tests).
+- Integration tests: passed (16 tests).
+- E2E smoke: passed (3 tests), including invalid publish blocking plus successful publish and service-call flows on `/topics`.
+
+#### 13.4 Known limitations after T4.2
+- Schema-aware validation is currently limited to the small registry of known message and service types above; unknown contracts fall back to JSON-object validation only.
+- Publish and service forms live inside the Topics view for this slice; dedicated control workflows remain deferred to T4.3.
+- Service responses are currently shown as raw formatted JSON; richer typed response rendering remains future work.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -384,13 +424,16 @@ Issues encountered and resolved:
 - ui/src/stores/topic.unit.test.ts
 - ui/src/views/TopicsView.vue
 - ui/src/views/TopicsView.unit.test.ts
+- ui/src/core/ros/forms.ts
+- ui/src/core/ros/forms.unit.test.ts
 
 ## Current status
 - Phase 1 remains complete and validated.
 - Phase 2 EPIC 2 (T2.1, T2.2, T2.3) is complete and validated.
 - EPIC 3 (T3.1, T3.2, T3.3) is complete and validated.
 - EPIC 4 / T4.1 Topics explorer MVP is complete and validated.
-- Next planned work is EPIC 4 / T4.2 Publish and service forms.
+- EPIC 4 / T4.2 Publish and service forms is complete and validated.
+- Next planned work is EPIC 4 / T4.3 Control center MVP.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
@@ -405,6 +448,7 @@ Use this section to keep an atomized record of commits as each phase is complete
 | 2026-04-28 | 2960b4b | feat: complete Epic 3 RL runtime and REST fallback | Phase 3 - T3.1 live RL WS + T3.2 REST fallback |
 | 2026-04-28 | c8cc455 | feat: complete Epic 3 Agents MVP view | Phase 3 - T3.3 Agents MVP |
 | 2026-04-28 | TBD (this commit) | feat: complete Epic 4 T4.1 Topics explorer MVP | Phase 4 - T4.1 topics explorer MVP |
+| 2026-04-28 | TBD (this commit) | feat: complete Epic 4 T4.2 publish and service forms | Phase 4 - T4.2 publish and service forms |
 
 ### Ledger update rules
 - Add one row per atomic commit.

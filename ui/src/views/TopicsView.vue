@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import {
+  getRosTypeTemplate,
+  hasKnownPublishSchema,
+  hasKnownServiceSchema,
+} from "../core/ros/forms";
 import { ensureRosbridgeConnection, getRosbridgeClient } from "../services/rosbridge-connection";
 import {
+  callRosService,
+  publishToTopic,
+  refreshServiceCatalog,
   refreshTopicCatalog,
   subscribeToTopic,
   teardownTopicExplorer,
   unsubscribeFromTopic,
+  validateServiceCallInput,
+  validateTopicPublishInput,
 } from "../services/topic-explorer";
 import { useConnectionStore } from "../stores/connection";
 import { useTopicStore } from "../stores/topic";
@@ -16,6 +26,13 @@ const topicStore = useTopicStore();
 const filterText = ref("");
 const isLoading = ref(false);
 const loadError = ref<string | null>(null);
+const publishPayload = ref("{}");
+const publishError = ref<string | null>(null);
+const publishStatus = ref<string | null>(null);
+const servicePayload = ref("{}");
+const serviceError = ref<string | null>(null);
+const serviceStatus = ref<string | null>(null);
+const serviceResponse = ref<string | null>(null);
 
 const rosbridgeStatusText = computed(() => {
   const transport = connectionStore.rosbridge.transport;
@@ -35,6 +52,19 @@ const filteredTopics = computed(() => {
 const selectedTopic = computed(() => topicStore.selectedTopic);
 const selectedMessages = computed(() => topicStore.selectedTopicMessages);
 const latestMessage = computed(() => selectedMessages.value[0] ?? null);
+const selectedService = computed(() => topicStore.selectedService);
+const publishSchemaHint = computed(() => {
+  if (!selectedTopic.value) return "Select a topic to publish a message.";
+  return hasKnownPublishSchema(selectedTopic.value.type)
+    ? `Schema-aware validation active for ${selectedTopic.value.type}.`
+    : `Generic JSON object validation only. No schema is registered for ${selectedTopic.value.type}.`;
+});
+const serviceSchemaHint = computed(() => {
+  if (!selectedService.value) return "Select a service to call it.";
+  return hasKnownServiceSchema(selectedService.value.type)
+    ? `Schema-aware validation active for ${selectedService.value.type}.`
+    : `Generic JSON object validation only. No schema is registered for ${selectedService.value.type}.`;
+});
 
 async function loadTopics(): Promise<void> {
   const client = getRosbridgeClient() ?? ensureRosbridgeConnection();
@@ -43,10 +73,14 @@ async function loadTopics(): Promise<void> {
   loadError.value = null;
 
   try {
-    await refreshTopicCatalog(client);
+    await Promise.all([refreshTopicCatalog(client), refreshServiceCatalog(client)]);
 
     if (!selectedTopic.value && topicStore.topics.length > 0) {
       topicStore.setSelectedTopic(topicStore.topics[0].name);
+    }
+
+    if (!selectedService.value && topicStore.services.length > 0) {
+      topicStore.setSelectedService(topicStore.services[0].name);
     }
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : "Failed to load topics";
@@ -57,6 +91,10 @@ async function loadTopics(): Promise<void> {
 
 function selectTopic(topicName: string): void {
   topicStore.setSelectedTopic(topicName);
+}
+
+function selectService(serviceName: string): void {
+  topicStore.setSelectedService(serviceName);
 }
 
 function toggleSubscription(topicName: string, topicType: string, isSubscribed: boolean): void {
@@ -73,6 +111,80 @@ function toggleSubscription(topicName: string, topicType: string, isSubscribed: 
 
   subscribeToTopic(client, topicName, topicType);
 }
+
+async function submitPublish(): Promise<void> {
+  const client = getRosbridgeClient();
+  if (!client || !selectedTopic.value) {
+    publishError.value = "Rosbridge topic publishing is unavailable.";
+    return;
+  }
+
+  const validation = validateTopicPublishInput(selectedTopic.value.type, publishPayload.value);
+  if (!validation.ok || !validation.parsed) {
+    publishError.value = validation.errors.join(" ");
+    publishStatus.value = null;
+    return;
+  }
+
+  publishToTopic(client, selectedTopic.value.name, selectedTopic.value.type, validation.parsed);
+  publishError.value = null;
+  publishStatus.value = `Published to ${selectedTopic.value.name}.`;
+}
+
+async function submitServiceCall(): Promise<void> {
+  const client = getRosbridgeClient();
+  if (!client || !selectedService.value) {
+    serviceError.value = "Rosbridge service calling is unavailable.";
+    return;
+  }
+
+  const validation = validateServiceCallInput(selectedService.value.type, servicePayload.value);
+  if (!validation.ok || !validation.parsed) {
+    serviceError.value = validation.errors.join(" ");
+    serviceStatus.value = null;
+    serviceResponse.value = null;
+    return;
+  }
+
+  try {
+    const response = await callRosService(
+      client,
+      selectedService.value.name,
+      selectedService.value.type,
+      validation.parsed,
+    );
+    serviceError.value = null;
+    serviceStatus.value = `Service call completed for ${selectedService.value.name}.`;
+    serviceResponse.value = JSON.stringify(response, null, 2);
+  } catch (error) {
+    serviceError.value = error instanceof Error ? error.message : "Service call failed";
+    serviceStatus.value = null;
+    serviceResponse.value = null;
+  }
+}
+
+watch(
+  selectedTopic,
+  (topic) => {
+    if (!topic) return;
+    publishPayload.value = getRosTypeTemplate(topic.type);
+    publishError.value = null;
+    publishStatus.value = null;
+  },
+  { immediate: true },
+);
+
+watch(
+  selectedService,
+  (service) => {
+    if (!service) return;
+    servicePayload.value = getRosTypeTemplate(service.type);
+    serviceError.value = null;
+    serviceStatus.value = null;
+    serviceResponse.value = null;
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   void loadTopics();
@@ -204,6 +316,97 @@ onUnmounted(() => {
         <p v-else class="empty-state">Select a topic to inspect messages.</p>
       </article>
     </section>
+
+    <section class="operations-grid">
+      <article class="operation-panel" data-testid="publish-form-panel">
+        <header class="panel-header">
+          <div>
+            <h2>Publish</h2>
+            <p>{{ publishSchemaHint }}</p>
+          </div>
+          <span class="viewer-chip" :data-subscribed="Boolean(selectedTopic)">
+            {{ selectedTopic?.name ?? "No topic" }}
+          </span>
+        </header>
+
+        <textarea
+          v-model="publishPayload"
+          class="payload-input"
+          data-testid="publish-payload"
+          rows="10"
+          spellcheck="false"
+        />
+
+        <p v-if="publishError" class="load-error" data-testid="publish-error">{{ publishError }}</p>
+        <p v-if="publishStatus" class="success-text" data-testid="publish-status">{{ publishStatus }}</p>
+
+        <button
+          type="button"
+          class="refresh-button"
+          :disabled="!selectedTopic"
+          data-testid="publish-submit"
+          @click="submitPublish"
+        >
+          Publish message
+        </button>
+      </article>
+
+      <article class="operation-panel" data-testid="service-form-panel">
+        <header class="panel-header">
+          <div>
+            <h2>Services</h2>
+            <p>{{ serviceSchemaHint }}</p>
+          </div>
+          <span class="viewer-chip" :data-subscribed="Boolean(selectedService)">
+            {{ selectedService?.name ?? "No service" }}
+          </span>
+        </header>
+
+        <div class="service-list-wrap">
+          <table class="topics-table" data-testid="services-table">
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="service in topicStore.services"
+                :key="service.name"
+                :data-active="selectedService?.name === service.name"
+                @click="selectService(service.name)"
+              >
+                <td>{{ service.name }}</td>
+                <td>{{ service.type }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <textarea
+          v-model="servicePayload"
+          class="payload-input"
+          data-testid="service-payload"
+          rows="8"
+          spellcheck="false"
+        />
+
+        <p v-if="serviceError" class="load-error" data-testid="service-error">{{ serviceError }}</p>
+        <p v-if="serviceStatus" class="success-text" data-testid="service-status">{{ serviceStatus }}</p>
+        <pre v-if="serviceResponse" class="raw-message" data-testid="service-response">{{ serviceResponse }}</pre>
+
+        <button
+          type="button"
+          class="refresh-button"
+          :disabled="!selectedService"
+          data-testid="service-submit"
+          @click="submitServiceCall"
+        >
+          Call service
+        </button>
+      </article>
+    </section>
   </section>
 </template>
 
@@ -273,7 +476,8 @@ onUnmounted(() => {
 }
 
 .summary-grid,
-.workspace-grid {
+.workspace-grid,
+.operations-grid {
   display: grid;
   gap: 0.75rem;
 }
@@ -284,7 +488,8 @@ onUnmounted(() => {
 
 .summary-grid article,
 .catalog-panel,
-.viewer-panel {
+.viewer-panel,
+.operation-panel {
   border: 1px solid var(--panel-border);
   border-radius: 0.7rem;
   background: var(--panel-bg);
@@ -313,6 +518,28 @@ onUnmounted(() => {
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
 }
 
+.operations-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 0.8rem;
+}
+
+.panel-header h2 {
+  margin: 0;
+  color: var(--text-strong);
+}
+
+.panel-header p {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+}
+
 .filter-field {
   display: grid;
   gap: 0.35rem;
@@ -337,9 +564,19 @@ onUnmounted(() => {
   color: #a13a36;
 }
 
+.success-text {
+  margin: 0.8rem 0 0;
+  color: #1d6f42;
+}
+
 .table-wrap {
   overflow: auto;
   margin-top: 0.8rem;
+}
+
+.service-list-wrap {
+  overflow: auto;
+  max-height: 220px;
 }
 
 .topics-table {
@@ -400,14 +637,27 @@ onUnmounted(() => {
   font-size: 0.82rem;
 }
 
+.payload-input {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 0.65rem;
+  padding: 0.75rem;
+  background: #f9fcfe;
+  color: var(--text-strong);
+  font: 0.86rem/1.45 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  resize: vertical;
+}
+
 @media (max-width: 900px) {
   .topics-header,
-  .viewer-header {
+  .viewer-header,
+  .panel-header {
     flex-direction: column;
   }
 
   .summary-grid,
   .workspace-grid,
+  .operations-grid,
   .message-meta {
     grid-template-columns: 1fr;
   }

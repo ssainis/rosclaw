@@ -153,4 +153,41 @@ describe("RosbridgeClient reconnect behavior", () => {
 
     await expect(responsePromise).rejects.toThrow("rosbridge service call timed out");
   });
+
+  it("sends service type when provided for typed service calls", async () => {
+    const client = new RosbridgeClient({
+      url: "ws://test:9090",
+      reconnect: false,
+    });
+
+    client.connect();
+    const socket = MockWebSocket.instances[0];
+    socket.emitOpen();
+
+    const responsePromise = client.callService(
+      "/robot/get_capabilities",
+      { robot_namespace: "/demo" },
+      "rosclaw_msgs/srv/GetCapabilities",
+      1000,
+    );
+
+    const call = JSON.parse(socket.sentMessages[0]);
+    expect(call).toMatchObject({
+      op: "call_service",
+      service: "/robot/get_capabilities",
+      type: "rosclaw_msgs/srv/GetCapabilities",
+    });
+
+    socket.emitMessage(
+      JSON.stringify({
+        op: "service_response",
+        id: call.id,
+        service: "/robot/get_capabilities",
+        result: true,
+        values: { success: true },
+      }),
+    );
+
+    await expect(responsePromise).resolves.toEqual({ success: true });
+  });
 });

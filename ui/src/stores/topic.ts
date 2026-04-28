@@ -22,8 +22,15 @@ export interface TopicMessageRecord {
   rawJson: string;
 }
 
+export interface RosServiceEntry {
+  name: string;
+  type: string;
+}
+
 interface TopicState {
+  selectedServiceName: string | null;
   selectedTopicName: string | null;
+  servicesByName: Record<string, RosServiceEntry>;
   topicsByName: Record<string, TopicCatalogEntry>;
   topicMessagesByName: Record<string, TopicMessageRecord[]>;
 }
@@ -41,13 +48,22 @@ function payloadToJson(payload: unknown): string {
 
 export const useTopicStore = defineStore("topic", {
   state: (): TopicState => ({
+    selectedServiceName: null,
     selectedTopicName: null,
+    servicesByName: {},
     topicsByName: {},
     topicMessagesByName: {},
   }),
   getters: {
+    services(state): RosServiceEntry[] {
+      return Object.values(state.servicesByName).sort((left, right) => left.name.localeCompare(right.name));
+    },
     topics(state): TopicCatalogEntry[] {
       return Object.values(state.topicsByName).sort((left, right) => left.name.localeCompare(right.name));
+    },
+    selectedService(state): RosServiceEntry | null {
+      if (!state.selectedServiceName) return null;
+      return state.servicesByName[state.selectedServiceName] ?? null;
     },
     selectedTopic(state): TopicCatalogEntry | null {
       if (!state.selectedTopicName) return null;
@@ -84,6 +100,25 @@ export const useTopicStore = defineStore("topic", {
       }
 
       this.selectedTopicName = entries[0]?.name ?? null;
+    },
+
+    replaceServices(entries: RosServiceEntry[]): void {
+      const nextServices: Record<string, RosServiceEntry> = {};
+      for (const entry of entries) {
+        nextServices[entry.name] = entry;
+      }
+
+      this.servicesByName = nextServices;
+
+      if (this.selectedServiceName && this.servicesByName[this.selectedServiceName]) {
+        return;
+      }
+
+      this.selectedServiceName = entries[0]?.name ?? null;
+    },
+
+    setSelectedService(serviceName: string | null): void {
+      this.selectedServiceName = serviceName;
     },
 
     setSelectedTopic(topicName: string | null): void {

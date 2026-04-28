@@ -52,4 +52,21 @@ describe("topic store", () => {
     expect(store.topics[0].messageCount).toBe(1);
     expect(store.topics[0].lastMessageAt).not.toBeNull();
   });
+
+  it("tracks discovered services and selected service", () => {
+    const store = useTopicStore();
+
+    store.replaceServices([
+      { name: "/robot/get_capabilities", type: "rosclaw_msgs/srv/GetCapabilities" },
+      { name: "/reset_map", type: "std_srvs/srv/Trigger" },
+    ]);
+
+    expect(store.services.map((service) => service.name)).toEqual([
+      "/reset_map",
+      "/robot/get_capabilities",
+    ]);
+
+    store.setSelectedService("/robot/get_capabilities");
+    expect(store.selectedService?.type).toBe("rosclaw_msgs/srv/GetCapabilities");
+  });
 });

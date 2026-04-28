@@ -8,10 +8,15 @@ import { useMissionStore } from "../stores/mission";
 import { useRobotStore } from "../stores/robot";
 import { useTopicStore } from "../stores/topic";
 import {
+  callRosService,
+  publishToTopic,
   refreshTopicCatalog,
+  refreshServiceCatalog,
   subscribeToTopic,
   teardownTopicExplorer,
   unsubscribeFromTopic,
+  validateServiceCallInput,
+  validateTopicPublishInput,
 } from "./topic-explorer";
 
 describe("topic explorer integration", () => {
@@ -33,16 +38,34 @@ describe("topic explorer integration", () => {
 
   it("discovers topics and routes subscribed /odom payloads into the topic store", async () => {
     const handlers = new Map<string, (message: Record<string, unknown>) => void>();
+    const publishSpy = vi.fn();
     const client = {
       callService: vi.fn(async (service: string, args?: Record<string, unknown>) => {
         if (service === "/rosapi/topics") {
-          return { topics: ["/scan", "/odom"] };
+          return {
+            topics: ["/scan", "/odom"],
+            types: ["sensor_msgs/msg/LaserScan", "nav_msgs/Odometry"],
+          };
+        }
+
+        if (service === "/rosapi/services") {
+          return {
+            services: ["/robot/get_capabilities"],
+            types: ["rosclaw_msgs/srv/GetCapabilities"],
+          };
         }
 
         if (service === "/rosapi/topic_type") {
           return {
             type:
               args?.topic === "/odom" ? "nav_msgs/Odometry" : "sensor_msgs/msg/LaserScan",
+          };
+        }
+
+        if (service === "/robot/get_capabilities") {
+          return {
+            success: true,
+            manifest: { robot_name: "demo" },
           };
         }
 
@@ -54,12 +77,15 @@ describe("topic explorer integration", () => {
           handlers.delete(topic);
         };
       }),
+      publish: publishSpy,
     } as unknown as import("../rosbridge").RosbridgeClient;
 
     await refreshTopicCatalog(client);
+    await refreshServiceCatalog(client);
 
     const topicStore = useTopicStore();
     expect(topicStore.topics.map((topic) => topic.name)).toEqual(["/odom", "/scan"]);
+    expect(topicStore.services.map((service) => service.name)).toEqual(["/robot/get_capabilities"]);
 
     subscribeToTopic(client, "/odom", "nav_msgs/Odometry");
     handlers.get("/odom")?.({
@@ -78,5 +104,33 @@ describe("topic explorer integration", () => {
 
     unsubscribeFromTopic("/odom");
     expect(topicStore.selectedTopic?.isSubscribed).toBe(false);
+
+    expect(validateTopicPublishInput("geometry_msgs/msg/Twist", '{"linear": {"x": "fast"}}')).toMatchObject({
+      ok: false,
+    });
+    expect(
+      validateServiceCallInput(
+        "rosclaw_msgs/srv/GetCapabilities",
+        '{"robot_namespace": "/demo"}',
+      ),
+    ).toMatchObject({ ok: true });
+
+    publishToTopic(client, "/cmd_vel", "geometry_msgs/msg/Twist", {
+      linear: { x: 0.4, y: 0, z: 0 },
+      angular: { x: 0, y: 0, z: 0.2 },
+    });
+    expect(publishSpy).toHaveBeenCalledWith("/cmd_vel", "geometry_msgs/msg/Twist", {
+      linear: { x: 0.4, y: 0, z: 0 },
+      angular: { x: 0, y: 0, z: 0.2 },
+    });
+
+    await expect(
+      callRosService(
+        client,
+        "/robot/get_capabilities",
+        "rosclaw_msgs/srv/GetCapabilities",
+        { robot_namespace: "/demo" },
+      ),
+    ).resolves.toEqual({ success: true, manifest: { robot_name: "demo" } });
   });
 });
