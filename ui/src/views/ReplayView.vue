@@ -1,12 +1,33 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onUnmounted } from "vue";
 import { useSessionCaptureStore } from "../stores/session-capture";
+import { createReplayEngine } from "../services/replay-engine";
+import { eventBus } from "../core/events/runtime";
 
 const captureStore = useSessionCaptureStore();
 
 const sessionLabel = ref("Session " + new Date().toISOString().slice(0, 10));
 const importError = computed(() => captureStore.importError);
 const loadedMeta = computed(() => captureStore.loadedSession?.metadata ?? null);
+
+// Replay engine
+const engine = createReplayEngine(eventBus);
+const replayState = ref(engine.state);
+const offStateChange = engine.onStateChange((s) => { replayState.value = { ...s }; });
+
+onUnmounted(() => {
+  offStateChange();
+  engine.dispose();
+});
+
+const scrubberMax = computed(() => Math.max(0, replayState.value.totalEvents - 1));
+const scrubberValue = computed(() => replayState.value.currentIndex);
+
+function loadSessionForReplay() {
+  if (captureStore.loadedSession) {
+    engine.load(captureStore.loadedSession);
+  }
+}
 
 function startRecording() {
   captureStore.startCapture(sessionLabel.value.trim() || "Unnamed session");
@@ -44,16 +65,31 @@ function onFileInput(event: Event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const text = e.target?.result as string;
-    captureStore.importSession(text);
+    const ok = captureStore.importSession(text);
+    if (ok && captureStore.loadedSession) {
+      engine.load(captureStore.loadedSession);
+    }
   };
   reader.readAsText(file);
-  // Reset so same file can be re-selected
   input.value = "";
 }
 
 function clearLoaded() {
+  engine.stop();
   captureStore.clearLoadedSession();
 }
+
+function onScrubberInput(event: Event) {
+  const input = event.target as HTMLInputElement;
+  engine.seekTo(Number(input.value));
+}
+
+const SPEED_OPTIONS = [
+  { label: "0.5×", value: 0.5 },
+  { label: "1×", value: 1 },
+  { label: "2×", value: 2 },
+  { label: "Instant", value: 0 },
+];
 </script>
 
 <template>
@@ -122,9 +158,70 @@ function clearLoaded() {
         <p><strong>Events:</strong> {{ loadedMeta.event_count }}</p>
         <p><strong>Sources:</strong> {{ loadedMeta.sources.join(", ") }}</p>
         <p><strong>Recorded:</strong> {{ loadedMeta.start_timestamp }}</p>
-        <button class="btn btn-clear" @click="clearLoaded" aria-label="Clear loaded session">Clear</button>
+        <div class="loaded-actions">
+          <button class="btn btn-load-replay" @click="loadSessionForReplay" aria-label="Load into replay engine">
+            Load into replay
+          </button>
+          <button class="btn btn-clear" @click="clearLoaded" aria-label="Clear loaded session">Clear</button>
+        </div>
       </div>
       <p v-else class="no-session">No session loaded.</p>
+    </section>
+
+    <!-- Replay engine controls -->
+    <section v-if="replayState.totalEvents > 0" class="panel" aria-label="Replay controls">
+      <h2>Replay engine</h2>
+      <div class="replay-status">
+        <span class="status-badge" :class="replayState.status" aria-label="Replay status">
+          {{ replayState.status.toUpperCase() }}
+        </span>
+        <span class="event-pos">
+          Event {{ replayState.currentIndex }} / {{ replayState.totalEvents }}
+        </span>
+      </div>
+      <div class="scrubber-row" aria-label="Replay scrubber">
+        <input
+          type="range"
+          min="0"
+          :max="scrubberMax"
+          :value="scrubberValue"
+          class="scrubber"
+          aria-label="Seek position"
+          @input="onScrubberInput"
+        />
+      </div>
+      <div class="replay-actions">
+        <button
+          v-if="replayState.status !== 'playing'"
+          class="btn btn-start"
+          @click="engine.play()"
+          aria-label="Play replay"
+        >
+          ▶ Play
+        </button>
+        <button
+          v-else
+          class="btn btn-stop"
+          @click="engine.pause()"
+          aria-label="Pause replay"
+        >
+          ⏸ Pause
+        </button>
+        <button class="btn btn-clear" @click="engine.stop()" aria-label="Stop and reset replay">
+          ■ Stop
+        </button>
+        <span class="speed-label">Speed:</span>
+        <button
+          v-for="opt in SPEED_OPTIONS"
+          :key="opt.value"
+          class="btn btn-speed"
+          :class="{ active: replayState.speedMultiplier === opt.value }"
+          :aria-label="`Set speed ${opt.label}`"
+          @click="engine.setSpeed(opt.value)"
+        >
+          {{ opt.label }}
+        </button>
+      </div>
     </section>
   </div>
 </template>
@@ -198,5 +295,30 @@ h1 { margin: 0 0 0.25rem; font-size: 1.4rem; }
   gap: 0.25rem;
 }
 .loaded-session p { margin: 0; font-size: 0.85rem; }
+.loaded-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+.btn-load-replay { background: #3b82f6; color: #fff; }
 .no-session { color: var(--color-text-secondary, #888); font-size: 0.85rem; margin: 0; }
+
+/* Replay controls */
+.replay-status { display: flex; align-items: center; gap: 0.75rem; }
+.status-badge { font-weight: 600; font-size: 0.8rem; }
+.status-badge.idle { color: #9ca3af; }
+.status-badge.playing { color: #22c55e; }
+.status-badge.paused { color: #f59e0b; }
+.status-badge.ended { color: #888; }
+.event-pos { font-size: 0.85rem; color: var(--color-text-secondary, #aaa); }
+
+.scrubber-row { display: flex; align-items: center; gap: 0.5rem; }
+.scrubber { flex: 1; height: 4px; }
+
+.replay-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.speed-label { font-size: 0.8rem; color: var(--color-text-secondary, #aaa); }
+.btn-speed { 
+  background: transparent; 
+  border: 1px solid #555; 
+  color: inherit; 
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+.btn-speed.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
 </style>
