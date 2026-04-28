@@ -97,5 +97,7 @@ describe("agent store", () => {
     expect(store.agents[0].status).toBe("running");
     expect(store.agents[0].lastReward).toBe(2.5);
     expect(store.agents[0].lastAction).toBe("hold_position");
+    expect(store.agents[0].rewardSeries).toEqual([2.5]);
+    expect(store.agents[0].actionCounts).toEqual({ hold_position: 1 });
   });
 });

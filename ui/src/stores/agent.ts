@@ -10,6 +10,8 @@ export interface AgentSnapshot {
   policyVersion: string | null;
   lastReward: number | null;
   lastAction: string | null;
+  rewardSeries: number[];
+  actionCounts: Record<string, number>;
   lastSourceTimestamp: string;
   lastUiReceivedTimestamp: string;
 }
@@ -17,6 +19,8 @@ export interface AgentSnapshot {
 interface AgentState {
   agentsById: Record<string, AgentSnapshot>;
 }
+
+const REWARD_SERIES_LIMIT = 32;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== "object" || value === null) return null;
@@ -39,6 +43,8 @@ function defaultSnapshot(id: string): AgentSnapshot {
     policyVersion: null,
     lastReward: null,
     lastAction: null,
+    rewardSeries: [],
+    actionCounts: {},
     lastSourceTimestamp: "",
     lastUiReceivedTimestamp: "",
   };
@@ -96,9 +102,16 @@ export const useAgentStore = defineStore("agent", {
       }
 
       if (event.event_type === "agent:reward") {
+        const rewardValue = typeof payload?.reward === "number" ? payload.reward : current.lastReward;
+        const rewardSeries =
+          rewardValue === null
+            ? current.rewardSeries
+            : [...current.rewardSeries, rewardValue].slice(-REWARD_SERIES_LIMIT);
+
         this.agentsById[event.entity_id] = {
           ...current,
-          lastReward: typeof payload?.reward === "number" ? payload.reward : current.lastReward,
+          lastReward: rewardValue,
+          rewardSeries,
           lastSourceTimestamp: event.timestamp_source,
           lastUiReceivedTimestamp: event.timestamp_ui_received,
         };
@@ -106,9 +119,16 @@ export const useAgentStore = defineStore("agent", {
       }
 
       if (event.event_type === "agent:action") {
+        const action = typeof payload?.action === "string" ? payload.action : current.lastAction;
+        const actionCounts = { ...current.actionCounts };
+        if (action) {
+          actionCounts[action] = (actionCounts[action] ?? 0) + 1;
+        }
+
         this.agentsById[event.entity_id] = {
           ...current,
-          lastAction: typeof payload?.action === "string" ? payload.action : current.lastAction,
+          lastAction: action,
+          actionCounts,
           lastSourceTimestamp: event.timestamp_source,
           lastUiReceivedTimestamp: event.timestamp_ui_received,
         };

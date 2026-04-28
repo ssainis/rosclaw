@@ -482,6 +482,39 @@ Issues encountered and resolved:
 - Summary and panel refresh cadence is event-driven only; no explicit sampling/decimation controls are added in this slice.
 - Load-time budget instrumentation is not yet automated; performance hardening remains scheduled for Epic 6.
 
+### 17) Phase 5 implementation continued (EPIC 5 / T5.2)
+
+#### 17.1 Metrics and rewards panel v1 delivered scope
+- Added `ui/src/views/MetricsView.vue` and replaced the `/metrics` placeholder route with a live Metrics and Rewards view.
+- Reused existing domain-store pathways to present:
+  - reward trend sparklines by agent
+  - aggregate reward sample and average reward cards
+  - action histogram across agents
+  - control command success rate and p95 latency summary
+  - recent control latency table
+- Extended the existing agent store (`ui/src/stores/agent.ts`) to track rolling reward series and action-frequency counters from canonical `agent:reward` and `agent:action` events.
+- Added component-level and store-level tests to validate burst reward/action fixture handling and panel rendering.
+
+#### 17.2 Files changed for T5.2
+- domain-knowledge/adding_a_unified_dashboard/code-development-log.md
+- ui/e2e/smoke.spec.ts
+- ui/src/router/index.ts
+- ui/src/stores/agent.ts
+- ui/src/stores/agent.unit.test.ts
+- ui/src/views/MetricsView.unit.test.ts
+- ui/src/views/MetricsView.vue
+
+#### 17.3 Validation results for T5.2
+- Typecheck: passed (`pnpm --filter @rosclaw/ui typecheck`).
+- Unit tests: passed (`pnpm --filter @rosclaw/ui test:unit`, 35 tests).
+- Integration tests: passed (`pnpm --filter @rosclaw/ui test:integration`, 19 tests).
+- E2E smoke: passed (`pnpm --filter @rosclaw/ui test:e2e -- ui/e2e/smoke.spec.ts`, 6 tests).
+
+#### 17.4 Known limitations after T5.2
+- Reward trend rendering uses CSS sparkline bars without a dedicated charting library yet; richer axis and zoom interactions are deferred.
+- Latency metrics currently summarize control-store action history only, which is bounded to the existing in-memory history window.
+- RL and control metrics are visualized in near-real-time but do not yet include long-horizon persistence or replay overlays.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -537,6 +570,7 @@ Issues encountered and resolved:
 - EPIC 4 / T4.4 E-stop entry and confirmation is complete and validated.
 - EPIC 4 (T4.1-T4.4) is complete and validated for this branch scope.
 - EPIC 5 / T5.1 Overview productionization is complete and validated.
+- EPIC 5 / T5.2 Metrics and rewards panel v1 is complete and validated.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
@@ -554,6 +588,7 @@ Use this section to keep an atomized record of commits as each phase is complete
 | 2026-04-28 | f308ad2 | feat: complete Epic 4 T4.2 publish and service forms | Phase 4 - T4.2 publish and service forms |
 | 2026-04-28 | 9fdef32 | feat: complete Epic 4 T4.3 control center MVP | Phase 4 - T4.3 control center MVP |
 | 2026-04-28 | 8c3e43b | feat: complete Epic 4 T4.4 emergency stop entry and confirmation | Phase 4 - T4.4 emergency stop and audit path |
+| 2026-04-28 | 7555afc | feat: complete Epic 5 T5.1 overview productionization | Phase 5 - T5.1 overview productionization |
 
 ### Ledger update rules
 - Add one row per atomic commit.

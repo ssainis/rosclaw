@@ -17,6 +17,14 @@ test("agents view route renders", async ({ page }) => {
   await expect(page.getByTestId("agents-summary")).toBeVisible();
 });
 
+test("metrics view route renders", async ({ page }) => {
+  await page.goto("/metrics");
+
+  await expect(page.getByTestId("topbar")).toBeVisible();
+  await expect(page.getByTestId("metrics-view")).toBeVisible();
+  await expect(page.getByTestId("metrics-summary")).toBeVisible();
+});
+
 test("topics view exposes /odom subscription and validated publish/service flows", async ({ page }) => {
   await page.addInitScript(() => {
     const sentMessages = [];

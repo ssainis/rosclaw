@@ -3,6 +3,7 @@ import OverviewView from "../views/OverviewView.vue";
 import AgentsView from "../views/AgentsView.vue";
 import TopicsView from "../views/TopicsView.vue";
 import ControlView from "../views/ControlView.vue";
+import MetricsView from "../views/MetricsView.vue";
 import PlaceholderView from "../views/PlaceholderView.vue";
 
 export const routes = [
@@ -35,11 +36,7 @@ export const routes = [
   {
     path: "/metrics",
     name: "metrics",
-    component: PlaceholderView,
-    props: {
-      title: "Metrics and Rewards",
-      description: "Reward and loop timing dashboards land in this view during Phase 2.",
-    },
+    component: MetricsView,
   },
   {
     path: "/timeline",
