@@ -37,6 +37,7 @@ describe("timeline store", () => {
     expect(store.events.length).toBe(2);
     expect(store.traceIds).toEqual(["trace-42"]);
     expect(store.events[0].eventType).toBe("audit:entry");
+    expect(store.events[0].payload).toMatchObject({ action: "set-mode", result: "ok" });
     expect(store.events[0].payloadPreview).toContain("set-mode");
   });
 });

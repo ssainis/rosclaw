@@ -588,6 +588,40 @@ Issues encountered and resolved:
 - The panel currently supports operator acknowledgment but does not yet enforce role-based authorization controls.
 - Alert history retention is bounded by the current in-memory store model.
 
+### 20) Phase 6 implementation started (EPIC 6 / T6.1)
+
+#### 20.1 Audit trail UI and API wiring delivered scope
+- Extended the control-center service layer to publish canonical `audit:entry` events through the existing event bus for each control action lifecycle transition (`pending`, `succeeded`, `failed`).
+- Audit payloads now include command provenance and execution context for each entry:
+  - actor and transport provenance
+  - action key/label
+  - endpoint name/type
+  - request payload
+  - result status, response payload, and error text
+- Reused the existing domain-event routing and timeline store pathway (no parallel pipeline) so audit entries are available anywhere timeline events are consumed.
+- Added a dedicated audit trail panel to the Mission Timeline view showing command provenance entries linked to trace and result status.
+
+#### 20.2 Files changed for T6.1
+- domain-knowledge/adding_a_unified_dashboard/code-development-log.md
+- ui/e2e/smoke.spec.ts
+- ui/src/services/control-center.integration.test.ts
+- ui/src/services/control-center.ts
+- ui/src/stores/timeline.ts
+- ui/src/stores/timeline.unit.test.ts
+- ui/src/views/TimelineView.unit.test.ts
+- ui/src/views/TimelineView.vue
+
+#### 20.3 Validation results for T6.1
+- Typecheck: passed (`pnpm --filter @rosclaw/ui typecheck`).
+- Unit tests: passed (`pnpm --filter @rosclaw/ui test:unit`, 40 tests).
+- Integration tests: passed (`pnpm --filter @rosclaw/ui test:integration`, 20 tests).
+- E2E smoke: passed (`pnpm --filter @rosclaw/ui test:e2e -- ui/e2e/smoke.spec.ts`, 8 tests).
+
+#### 20.4 Known limitations after T6.1
+- Audit trail is currently in-memory and session-scoped via timeline retention; durable backend audit persistence is still pending.
+- Provenance is currently modeled as operator-triggered rosbridge service submissions and does not yet include role-derived authorization metadata.
+- The audit panel is integrated into Mission Timeline for this slice; dedicated export/search workflows remain future work.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -647,6 +681,7 @@ Issues encountered and resolved:
 - EPIC 5 / T5.3 Mission timeline v1 is complete and validated.
 - EPIC 5 / T5.4 Alerts and safety panel is complete and validated.
 - EPIC 5 (T5.1-T5.4) is complete and validated for this branch scope.
+- EPIC 6 / T6.1 Audit trail UI and API wiring is complete and validated.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.

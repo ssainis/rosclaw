@@ -13,6 +13,7 @@ export interface TimelineEventRecord {
   eventType: string;
   severity: EventSeverity;
   traceId: string | null;
+  payload: unknown;
   payloadPreview: string;
 }
 
@@ -48,6 +49,7 @@ export const useTimelineStore = defineStore("timeline", {
         eventType: event.event_type,
         severity: event.severity ?? "info",
         traceId: event.trace_id ?? null,
+        payload: event.payload,
         payloadPreview: toPayloadPreview(event.payload),
       };
 

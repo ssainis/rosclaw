@@ -44,6 +44,54 @@ const traceCorrelatedEvents = computed(() => {
   return timelineStore.events.filter((event) => event.traceId === selectedTrace.value);
 });
 
+interface AuditEntryRow {
+  id: string;
+  timestamp: string;
+  label: string;
+  traceId: string;
+  actor: string;
+  transport: string;
+  endpoint: string;
+  resultStatus: "pending" | "succeeded" | "failed";
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== "object" || value === null) return null;
+  return value as Record<string, unknown>;
+}
+
+function asText(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+
+function asResultStatus(value: unknown): "pending" | "succeeded" | "failed" {
+  if (value === "pending" || value === "succeeded" || value === "failed") {
+    return value;
+  }
+  return "pending";
+}
+
+const auditEntries = computed<AuditEntryRow[]>(() => {
+  return timelineStore.events
+    .filter((event) => event.eventType === "audit:entry")
+    .map((event) => {
+      const payload = asRecord(event.payload);
+      const provenance = asRecord(payload?.provenance);
+      const endpoint = asRecord(payload?.endpoint);
+
+      return {
+        id: event.id,
+        timestamp: event.timestampUiReceived,
+        label: asText(payload?.label, "Unknown action"),
+        traceId: event.traceId ?? "",
+        actor: asText(provenance?.actor, "operator"),
+        transport: asText(provenance?.transport, "unknown"),
+        endpoint: asText(endpoint?.name, "-") + " | " + asText(endpoint?.type, "-"),
+        resultStatus: asResultStatus(payload?.result_status),
+      };
+    });
+});
+
 function focusTrace(traceId: string | null): void {
   if (!traceId) return;
   selectedTrace.value = traceId;
@@ -142,6 +190,44 @@ function focusTrace(traceId: string | null): void {
               <code>{{ event.payloadPreview }}</code>
             </li>
           </ul>
+        </div>
+      </article>
+
+      <article class="panel" data-testid="timeline-audit-panel">
+        <header>
+          <h2>Audit Trail</h2>
+          <p>Command provenance entries linked to trace and result status.</p>
+        </header>
+
+        <p v-if="auditEntries.length === 0" class="empty" data-testid="timeline-audit-empty">
+          No audit entries are available yet.
+        </p>
+
+        <div v-else class="table-wrap">
+          <table class="events-table" data-testid="timeline-audit-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Action</th>
+                <th>Result</th>
+                <th>Trace</th>
+                <th>Provenance</th>
+                <th>Endpoint</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="entry in auditEntries.slice(0, 120)" :key="entry.id" @click="focusTrace(entry.traceId)">
+                <td>{{ entry.timestamp }}</td>
+                <td>{{ entry.label }}</td>
+                <td>
+                  <span class="audit-status" :data-status="entry.resultStatus">{{ entry.resultStatus }}</span>
+                </td>
+                <td>{{ entry.traceId || "-" }}</td>
+                <td>{{ entry.actor }} via {{ entry.transport }}</td>
+                <td>{{ entry.endpoint }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </article>
     </section>
@@ -296,6 +382,30 @@ function focusTrace(traceId: string | null): void {
   border-radius: 0.3rem;
   padding: 0.2rem 0.3rem;
   font-size: 0.75rem;
+}
+
+.audit-status {
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.74rem;
+}
+
+.audit-status[data-status="pending"] {
+  background: rgba(255, 174, 0, 0.18);
+  border-color: rgba(255, 213, 0, 0.4);
+}
+
+.audit-status[data-status="succeeded"] {
+  background: rgba(40, 192, 95, 0.17);
+  border-color: rgba(77, 255, 136, 0.35);
+}
+
+.audit-status[data-status="failed"] {
+  background: rgba(220, 67, 67, 0.2);
+  border-color: rgba(255, 90, 90, 0.42);
 }
 
 @media (max-width: 1024px) {

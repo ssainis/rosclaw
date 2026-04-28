@@ -284,6 +284,12 @@ test("control view submits mode and scenario actions with visible provenance", a
   await expect(page.getByTestId("control-action-history")).toContainText("Switch to autonomous");
   await expect(page.getByTestId("control-action-history")).toContainText("Start episode");
 
+  await page.getByTestId("side-nav").getByRole("link", { name: "Timeline" }).click();
+  await expect(page.getByTestId("timeline-view")).toBeVisible();
+  await expect(page.getByTestId("timeline-audit-table")).toContainText("Switch to autonomous");
+  await expect(page.getByTestId("timeline-audit-table")).toContainText("Start episode");
+  await expect(page.getByTestId("timeline-audit-table")).toContainText("succeeded");
+
   const sentMessages = await page.evaluate(() => window.__rosbridgeSentMessages);
   expect(sentMessages).toEqual(
     expect.arrayContaining([

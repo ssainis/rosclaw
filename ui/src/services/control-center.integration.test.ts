@@ -49,6 +49,7 @@ describe("control center integration", () => {
 
     const controlStore = useControlStore();
     const missionStore = useMissionStore();
+    const timelineStore = useTimelineStore();
 
     expect(callService).toHaveBeenNthCalledWith(1, "/control/set_mode", { mode: "assist" }, "rosclaw_msgs/srv/SetMode");
     expect(callService).toHaveBeenNthCalledWith(
@@ -67,6 +68,12 @@ describe("control center integration", () => {
     });
     expect(missionStore.current?.status).toBe("running");
     expect(missionStore.currentMissionMode).toBe("assist");
+
+    const auditEvents = timelineStore.events.filter((event) => event.eventType === "audit:entry");
+    expect(auditEvents.length).toBe(4);
+    expect(auditEvents[0].traceId).toBe(controlStore.history[0].traceId);
+    expect(auditEvents[0].payload).toMatchObject({ result_status: "succeeded" });
+    expect(auditEvents[1].payload).toMatchObject({ result_status: "pending" });
   });
 
   it("captures failed submissions and clears pending state", async () => {
@@ -79,12 +86,18 @@ describe("control center integration", () => {
     );
 
     const controlStore = useControlStore();
+    const timelineStore = useTimelineStore();
     expect(controlStore.isActionPending("mission:set-mode")).toBe(false);
     expect(controlStore.latestAction).toMatchObject({
       label: "Switch to manual",
       status: "failed",
       error: "service unavailable",
     });
+
+    const auditEvents = timelineStore.events.filter((event) => event.eventType === "audit:entry");
+    expect(auditEvents.length).toBe(2);
+    expect(auditEvents[0].payload).toMatchObject({ result_status: "failed" });
+    expect(auditEvents[1].payload).toMatchObject({ result_status: "pending" });
   });
 
   it("submits emergency stop with reason and emits audit-worthy critical alert", async () => {

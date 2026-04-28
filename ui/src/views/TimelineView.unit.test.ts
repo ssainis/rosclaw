@@ -18,6 +18,7 @@ describe("TimelineView", () => {
 
     expect(wrapper.get('[data-testid="timeline-empty"]').text()).toContain("No events match");
     expect(wrapper.get('[data-testid="timeline-trace-empty"]').text()).toContain("Select a trace");
+    expect(wrapper.get('[data-testid="timeline-audit-empty"]').text()).toContain("No audit entries");
   });
 
   it("filters and correlates events by trace id", async () => {
@@ -41,7 +42,12 @@ describe("TimelineView", () => {
         entity_id: "audit",
         event_type: "audit:entry",
         trace_id: "trace-7",
-        payload: { action: "switch-mode" },
+        payload: {
+          label: "Switch to mode",
+          result_status: "succeeded",
+          provenance: { actor: "operator", transport: "rosbridge-service" },
+          endpoint: { name: "/control/set_mode", type: "rosclaw_msgs/srv/SetMode" },
+        },
       }),
     );
 
@@ -67,5 +73,7 @@ describe("TimelineView", () => {
 
     expect(wrapper.get('[data-testid="timeline-trace-list"]').text()).toContain("mission:state");
     expect(wrapper.get('[data-testid="timeline-trace-list"]').text()).toContain("audit:entry");
+    expect(wrapper.get('[data-testid="timeline-audit-table"]').text()).toContain("Switch to mode");
+    expect(wrapper.get('[data-testid="timeline-audit-table"]').text()).toContain("succeeded");
   });
 });

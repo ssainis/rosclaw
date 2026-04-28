@@ -69,6 +69,46 @@ function publishMissionSnapshot(eventType: string, traceId: string, payload: Rec
   );
 }
 
+function publishAuditEntry(input: {
+  actionId: string;
+  actionKey: string;
+  label: string;
+  traceId: string;
+  endpoint: ControlEndpoint;
+  request: Record<string, unknown>;
+  resultStatus: "pending" | "succeeded" | "failed";
+  response?: Record<string, unknown>;
+  error?: string;
+}): void {
+  eventBus.publish(
+    buildCanonicalEventEnvelope({
+      source: "operator",
+      entity_type: "system",
+      entity_id: "audit",
+      event_type: "audit:entry",
+      trace_id: input.traceId,
+      severity: input.resultStatus === "failed" ? "error" : "info",
+      payload: {
+        action_id: input.actionId,
+        action_key: input.actionKey,
+        label: input.label,
+        provenance: {
+          actor: "operator",
+          transport: "rosbridge-service",
+        },
+        endpoint: {
+          name: input.endpoint.serviceName,
+          type: input.endpoint.serviceType,
+        },
+        request: input.request,
+        result_status: input.resultStatus,
+        response: input.response ?? null,
+        error: input.error ?? null,
+      },
+    }),
+  );
+}
+
 export async function submitModeChange(
   client: RosbridgeClient,
   mode: MissionMode,
@@ -89,6 +129,15 @@ export async function submitModeChange(
     request,
     submittedAt: new Date().toISOString(),
   });
+  publishAuditEntry({
+    actionId,
+    actionKey: CONTROL_ACTION_KEYS.mode,
+    label: `Switch to ${mode}`,
+    traceId,
+    endpoint,
+    request,
+    resultStatus: "pending",
+  });
 
   try {
     const response = await callRosService(client, endpoint.serviceName, endpoint.serviceType, request);
@@ -97,10 +146,30 @@ export async function submitModeChange(
       mode,
     });
     controlStore.markSucceeded(actionId, response);
+    publishAuditEntry({
+      actionId,
+      actionKey: CONTROL_ACTION_KEYS.mode,
+      label: `Switch to ${mode}`,
+      traceId,
+      endpoint,
+      request,
+      resultStatus: "succeeded",
+      response,
+    });
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Mode change failed";
     controlStore.markFailed(actionId, message);
+    publishAuditEntry({
+      actionId,
+      actionKey: CONTROL_ACTION_KEYS.mode,
+      label: `Switch to ${mode}`,
+      traceId,
+      endpoint,
+      request,
+      resultStatus: "failed",
+      error: message,
+    });
     throw error;
   }
 }
@@ -130,6 +199,15 @@ export async function submitScenarioAction(
     request: payload,
     submittedAt: new Date().toISOString(),
   });
+  publishAuditEntry({
+    actionId,
+    actionKey,
+    label: action === "start" ? "Start episode" : "Reset episode",
+    traceId,
+    endpoint,
+    request: payload,
+    resultStatus: "pending",
+  });
 
   try {
     const response = await callRosService(client, endpoint.serviceName, endpoint.serviceType, payload);
@@ -138,10 +216,30 @@ export async function submitScenarioAction(
       mode: useMissionStore().currentMissionMode,
     });
     controlStore.markSucceeded(actionId, response);
+    publishAuditEntry({
+      actionId,
+      actionKey,
+      label: action === "start" ? "Start episode" : "Reset episode",
+      traceId,
+      endpoint,
+      request: payload,
+      resultStatus: "succeeded",
+      response,
+    });
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Scenario action failed";
     controlStore.markFailed(actionId, message);
+    publishAuditEntry({
+      actionId,
+      actionKey,
+      label: action === "start" ? "Start episode" : "Reset episode",
+      traceId,
+      endpoint,
+      request: payload,
+      resultStatus: "failed",
+      error: message,
+    });
     throw error;
   }
 }
@@ -167,6 +265,15 @@ export async function submitEmergencyStop(
     request: payload,
     submittedAt: new Date().toISOString(),
   });
+  publishAuditEntry({
+    actionId,
+    actionKey,
+    label: "Emergency stop",
+    traceId,
+    endpoint,
+    request: payload,
+    resultStatus: "pending",
+  });
 
   try {
     const response = await callRosService(client, endpoint.serviceName, endpoint.serviceType, payload);
@@ -190,10 +297,30 @@ export async function submitEmergencyStop(
       }),
     );
     controlStore.markSucceeded(actionId, response);
+    publishAuditEntry({
+      actionId,
+      actionKey,
+      label: "Emergency stop",
+      traceId,
+      endpoint,
+      request: payload,
+      resultStatus: "succeeded",
+      response,
+    });
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Emergency stop failed";
     controlStore.markFailed(actionId, message);
+    publishAuditEntry({
+      actionId,
+      actionKey,
+      label: "Emergency stop",
+      traceId,
+      endpoint,
+      request: payload,
+      resultStatus: "failed",
+      error: message,
+    });
     throw error;
   }
 }
