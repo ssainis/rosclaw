@@ -5,6 +5,7 @@ import { useAlertsStore } from "../stores/alerts";
 import { useControlStore } from "../stores/control";
 import { useMissionStore } from "../stores/mission";
 import { useRobotStore } from "../stores/robot";
+import { useTimelineStore } from "../stores/timeline";
 import { useTopicStore } from "../stores/topic";
 import { ensureDomainEventRouting, shutdownDomainEventRouting } from "./domain-event-routing";
 import {
@@ -24,6 +25,7 @@ describe("control center integration", () => {
       missionStore: useMissionStore(),
       alertsStore: useAlertsStore(),
       topicStore: useTopicStore(),
+      timelineStore: useTimelineStore(),
     });
   });
 

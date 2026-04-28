@@ -6,6 +6,8 @@ import { useAgentStore } from "../stores/agent";
 import { useAlertsStore } from "../stores/alerts";
 import { useMissionStore } from "../stores/mission";
 import { useRobotStore } from "../stores/robot";
+import { useTimelineStore } from "../stores/timeline";
+import { useTopicStore } from "../stores/topic";
 import { setupDomainEventRoutingForBus } from "./domain-event-routing";
 import { ingestRlWsMessage, normalizeRlWsMessage } from "./rl-ws-adapter";
 
@@ -23,6 +25,8 @@ describe("rl ws adapter integration", () => {
       agentStore,
       missionStore: useMissionStore(),
       alertsStore: useAlertsStore(),
+      topicStore: useTopicStore(),
+      timelineStore: useTimelineStore(),
     });
     const observedTypes: string[] = [];
 

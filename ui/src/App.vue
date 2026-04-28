@@ -5,6 +5,7 @@ import { useAgentStore } from "./stores/agent";
 import { useAlertsStore } from "./stores/alerts";
 import { useMissionStore } from "./stores/mission";
 import { useRobotStore } from "./stores/robot";
+import { useTimelineStore } from "./stores/timeline";
 import { useTopicStore } from "./stores/topic";
 import {
   ensureDomainEventRouting,
@@ -21,6 +22,7 @@ const agentStore = useAgentStore();
 const missionStore = useMissionStore();
 const alertsStore = useAlertsStore();
 const topicStore = useTopicStore();
+const timelineStore = useTimelineStore();
 
 onMounted(() => {
   ensureRosbridgeConnection();
@@ -31,6 +33,7 @@ onMounted(() => {
     missionStore,
     alertsStore,
     topicStore,
+    timelineStore,
   });
 });
 

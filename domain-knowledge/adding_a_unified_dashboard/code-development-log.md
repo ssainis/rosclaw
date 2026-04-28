@@ -515,6 +515,46 @@ Issues encountered and resolved:
 - Latency metrics currently summarize control-store action history only, which is bounded to the existing in-memory history window.
 - RL and control metrics are visualized in near-real-time but do not yet include long-horizon persistence or replay overlays.
 
+### 18) Phase 5 implementation continued (EPIC 5 / T5.3)
+
+#### 18.1 Mission timeline v1 delivered scope
+- Added `ui/src/stores/timeline.ts` and wired it into the existing event routing pipeline so all canonical envelopes are captured in one bounded timeline store without introducing a new transport/data path.
+- Updated domain routing setup and app wiring to include `timelineStore` alongside existing robot/agent/mission/alert/topic stores.
+- Replaced the `/timeline` placeholder with `ui/src/views/TimelineView.vue`, including:
+  - unified event stream table (newest first)
+  - free-text filtering across event metadata and payload preview
+  - source filter (`rosbridge`, `rl-ws`, `rl-rest`, `operator`)
+  - trace filter and click-to-focus trace selection
+  - trace correlation panel showing grouped events for the selected trace id
+- Added unit and integration coverage for timeline ingest, routing, and view-level correlation/filter behavior.
+
+#### 18.2 Files changed for T5.3
+- domain-knowledge/adding_a_unified_dashboard/code-development-log.md
+- ui/e2e/smoke.spec.ts
+- ui/src/App.vue
+- ui/src/router/index.ts
+- ui/src/services/control-center.integration.test.ts
+- ui/src/services/domain-event-routing.integration.test.ts
+- ui/src/services/domain-event-routing.ts
+- ui/src/services/rl-connection.integration.test.ts
+- ui/src/services/rl-ws-adapter.integration.test.ts
+- ui/src/services/topic-explorer.integration.test.ts
+- ui/src/stores/timeline.ts
+- ui/src/stores/timeline.unit.test.ts
+- ui/src/views/TimelineView.unit.test.ts
+- ui/src/views/TimelineView.vue
+
+#### 18.3 Validation results for T5.3
+- Typecheck: passed (`pnpm --filter @rosclaw/ui typecheck`).
+- Unit tests: passed (`pnpm --filter @rosclaw/ui test:unit`, 38 tests).
+- Integration tests: passed (`pnpm --filter @rosclaw/ui test:integration`, 19 tests).
+- E2E smoke: passed (`pnpm --filter @rosclaw/ui test:e2e -- ui/e2e/smoke.spec.ts`, 7 tests).
+
+#### 18.4 Known limitations after T5.3
+- Timeline retention is currently in-memory and bounded to a fixed event limit; persistence/export remains future work.
+- Trace correlation currently relies on existing `trace_id` presence in upstream events and does not infer synthetic traces.
+- Timeline display is table-based MVP and does not yet include grouped swimlanes or time-scale zoom interactions.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -571,6 +611,7 @@ Issues encountered and resolved:
 - EPIC 4 (T4.1-T4.4) is complete and validated for this branch scope.
 - EPIC 5 / T5.1 Overview productionization is complete and validated.
 - EPIC 5 / T5.2 Metrics and rewards panel v1 is complete and validated.
+- EPIC 5 / T5.3 Mission timeline v1 is complete and validated.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
@@ -589,6 +630,7 @@ Use this section to keep an atomized record of commits as each phase is complete
 | 2026-04-28 | 9fdef32 | feat: complete Epic 4 T4.3 control center MVP | Phase 4 - T4.3 control center MVP |
 | 2026-04-28 | 8c3e43b | feat: complete Epic 4 T4.4 emergency stop entry and confirmation | Phase 4 - T4.4 emergency stop and audit path |
 | 2026-04-28 | 7555afc | feat: complete Epic 5 T5.1 overview productionization | Phase 5 - T5.1 overview productionization |
+| 2026-04-28 | c6018d8 | feat: complete Epic 5 T5.2 metrics and rewards panel | Phase 5 - T5.2 metrics and rewards panel |
 
 ### Ledger update rules
 - Add one row per atomic commit.

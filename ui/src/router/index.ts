@@ -4,6 +4,7 @@ import AgentsView from "../views/AgentsView.vue";
 import TopicsView from "../views/TopicsView.vue";
 import ControlView from "../views/ControlView.vue";
 import MetricsView from "../views/MetricsView.vue";
+import TimelineView from "../views/TimelineView.vue";
 import PlaceholderView from "../views/PlaceholderView.vue";
 
 export const routes = [
@@ -41,11 +42,7 @@ export const routes = [
   {
     path: "/timeline",
     name: "timeline",
-    component: PlaceholderView,
-    props: {
-      title: "Mission Timeline",
-      description: "Cross-source event correlation lands in this view during Phase 2.",
-    },
+    component: TimelineView,
   },
   {
     path: "/alerts",

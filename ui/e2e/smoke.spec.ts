@@ -25,6 +25,14 @@ test("metrics view route renders", async ({ page }) => {
   await expect(page.getByTestId("metrics-summary")).toBeVisible();
 });
 
+test("timeline view route renders", async ({ page }) => {
+  await page.goto("/timeline");
+
+  await expect(page.getByTestId("topbar")).toBeVisible();
+  await expect(page.getByTestId("timeline-view")).toBeVisible();
+  await expect(page.getByTestId("timeline-filters")).toBeVisible();
+});
+
 test("topics view exposes /odom subscription and validated publish/service flows", async ({ page }) => {
   await page.addInitScript(() => {
     const sentMessages = [];

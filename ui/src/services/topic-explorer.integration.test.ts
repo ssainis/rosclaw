@@ -6,6 +6,7 @@ import { useAlertsStore } from "../stores/alerts";
 import { useConnectionStore } from "../stores/connection";
 import { useMissionStore } from "../stores/mission";
 import { useRobotStore } from "../stores/robot";
+import { useTimelineStore } from "../stores/timeline";
 import { useTopicStore } from "../stores/topic";
 import {
   callRosService,
@@ -28,6 +29,7 @@ describe("topic explorer integration", () => {
       missionStore: useMissionStore(),
       alertsStore: useAlertsStore(),
       topicStore: useTopicStore(),
+      timelineStore: useTimelineStore(),
     });
   });
 

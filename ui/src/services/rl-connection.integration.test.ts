@@ -8,6 +8,8 @@ import { useAlertsStore } from "../stores/alerts";
 import { useConnectionStore } from "../stores/connection";
 import { useMissionStore } from "../stores/mission";
 import { useRobotStore } from "../stores/robot";
+import { useTopicStore } from "../stores/topic";
+import { useTimelineStore } from "../stores/timeline";
 import { setupDomainEventRoutingForBus } from "./domain-event-routing";
 import { startRlConnectionRuntime } from "./rl-connection";
 
@@ -62,6 +64,8 @@ describe("rl connection runtime", () => {
       agentStore,
       missionStore: useMissionStore(),
       alertsStore: useAlertsStore(),
+      topicStore: useTopicStore(),
+      timelineStore: useTimelineStore(),
     });
 
     const shutdown = startRlConnectionRuntime({
@@ -98,6 +102,8 @@ describe("rl connection runtime", () => {
       agentStore,
       missionStore: useMissionStore(),
       alertsStore: useAlertsStore(),
+      topicStore: useTopicStore(),
+      timelineStore: useTimelineStore(),
     });
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       const isAgentsEndpoint = String(input).endsWith("/agents");

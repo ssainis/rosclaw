@@ -6,6 +6,7 @@ import { useAgentStore } from "../stores/agent";
 import { useAlertsStore } from "../stores/alerts";
 import { useMissionStore } from "../stores/mission";
 import { useRobotStore } from "../stores/robot";
+import { useTimelineStore } from "../stores/timeline";
 import { useTopicStore } from "../stores/topic";
 import { setupDomainEventRoutingForBus } from "./domain-event-routing";
 
@@ -21,6 +22,7 @@ describe("domain event routing integration", () => {
     const missionStore = useMissionStore();
     const alertsStore = useAlertsStore();
     const topicStore = useTopicStore();
+    const timelineStore = useTimelineStore();
     const bus = createEventBus();
 
     const dispose = setupDomainEventRoutingForBus(bus, {
@@ -29,6 +31,7 @@ describe("domain event routing integration", () => {
       missionStore,
       alertsStore,
       topicStore,
+      timelineStore,
     });
 
     bus.publish(
@@ -112,6 +115,7 @@ describe("domain event routing integration", () => {
     expect(missionStore.isMissionActive).toBe(true);
     expect(alertsStore.criticalCount).toBe(1);
     expect(topicStore.topics[0]).toMatchObject({ name: "/odom", messageCount: 1 });
+    expect(timelineStore.events.length).toBe(5);
 
     dispose();
   });
@@ -124,6 +128,7 @@ describe("domain event routing integration", () => {
       missionStore: useMissionStore(),
       alertsStore: useAlertsStore(),
       topicStore: useTopicStore(),
+      timelineStore: useTimelineStore(),
     });
 
     bus.publish({ bad: "event" });
