@@ -1,7 +1,9 @@
 import { defineStore } from "pinia";
 import type { CanonicalEventEnvelope } from "../core/events/envelope";
+import { parseJsonSafe } from "../core/perf/list-utils";
 
 const MESSAGE_HISTORY_LIMIT = 25;
+const PAYLOAD_PREVIEW_CHARS = 4_000;
 
 export interface TopicCatalogEntry {
   name: string;
@@ -43,7 +45,7 @@ function namespaceFromTopic(topicName: string): string {
 
 function payloadToJson(payload: unknown): string {
   const text = JSON.stringify(payload, null, 2);
-  return typeof text === "string" ? text : "null";
+  return parseJsonSafe(typeof text === "string" ? text : "null", PAYLOAD_PREVIEW_CHARS);
 }
 
 export const useTopicStore = defineStore("topic", {

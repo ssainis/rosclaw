@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useAgentStore } from "../stores/agent";
 import { useConnectionStore } from "../stores/connection";
 import { useControlStore, type ControlActionRecord } from "../stores/control";
+import { decimateSeriesForDisplay } from "../core/perf/list-utils";
 
 const connectionStore = useConnectionStore();
 const agentStore = useAgentStore();
@@ -18,7 +19,8 @@ const sortedAgents = computed(() => {
   return [...agentStore.agents].sort((left, right) => left.id.localeCompare(right.id));
 });
 
-const rewardSamples = computed(() =>
+// Raw reward samples (full fidelity) used for statistics and count display.
+const rawRewardSamples = computed(() =>
   sortedAgents.value.flatMap((agent) =>
     agent.rewardSeries.map((value, index) => ({
       key: `${agent.id}-${index}`,
@@ -28,10 +30,21 @@ const rewardSamples = computed(() =>
   ),
 );
 
+// Decimated reward samples (max 20 per agent) used only for sparkline rendering.
+const rewardSamples = computed(() =>
+  sortedAgents.value.flatMap((agent) =>
+    decimateSeriesForDisplay(agent.rewardSeries, 20).map((value, index) => ({
+      key: `${agent.id}-${index}`,
+      agentId: agent.id,
+      value,
+    })),
+  ),
+);
+
 const averageReward = computed(() => {
-  if (rewardSamples.value.length === 0) return null;
-  const total = rewardSamples.value.reduce((sum, sample) => sum + sample.value, 0);
-  return total / rewardSamples.value.length;
+  if (rawRewardSamples.value.length === 0) return null;
+  const total = rawRewardSamples.value.reduce((sum, sample) => sum + sample.value, 0);
+  return total / rawRewardSamples.value.length;
 });
 
 const actionHistogram = computed(() => {
@@ -101,7 +114,7 @@ const summaryCards = computed(() => {
     {
       id: "samples",
       title: "Reward Samples",
-      value: `${rewardSamples.value.length}`,
+      value: `${rawRewardSamples.value.length}`,
       detail: `${sortedAgents.value.length} active agents`,
     },
     {
@@ -168,7 +181,7 @@ const summaryCards = computed(() => {
             </div>
             <div class="sparkline" :data-testid="`metrics-spark-${agent.id}`">
               <span
-                v-for="(sample, index) in agent.rewardSeries"
+                v-for="(sample, index) in decimateSeriesForDisplay(agent.rewardSeries, 20)"
                 :key="`${agent.id}-${index}`"
                 class="spark-bar"
                 :style="{ height: `${Math.min(100, Math.max(10, Math.abs(sample) * 18))}%` }"

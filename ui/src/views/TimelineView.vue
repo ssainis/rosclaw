@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useTimelineStore } from "../stores/timeline";
+import { useVirtualList } from "../core/perf/virtual-list";
 
 const timelineStore = useTimelineStore();
 
@@ -96,6 +97,12 @@ function focusTrace(traceId: string | null): void {
   if (!traceId) return;
   selectedTrace.value = traceId;
 }
+
+const virtualEvents = useVirtualList<typeof filteredEvents.value[number]>({
+  items: filteredEvents,
+  rowHeightPx: 36,
+  containerHeightPx: 400,
+});
 </script>
 
 <template>
@@ -144,7 +151,12 @@ function focusTrace(traceId: string | null): void {
           No events match the current filters.
         </p>
 
-        <div v-else class="table-wrap">
+        <div
+          v-else
+          class="table-wrap virtualized"
+          data-testid="timeline-events-scroll"
+          @scroll="virtualEvents.onScroll"
+        >
           <table class="events-table" data-testid="timeline-events-table">
             <thead>
               <tr>
@@ -156,13 +168,15 @@ function focusTrace(traceId: string | null): void {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="event in filteredEvents.slice(0, 120)" :key="event.id" @click="focusTrace(event.traceId)">
+              <tr aria-hidden="true" :style="{ height: virtualEvents.topSpacerPx.value + 'px' }" />
+              <tr v-for="event in virtualEvents.renderedItems.value" :key="event.id" @click="focusTrace(event.traceId)">
                 <td>{{ event.timestampUiReceived }}</td>
                 <td>{{ event.source }}</td>
                 <td>{{ event.eventType }}</td>
                 <td>{{ event.entityType }}:{{ event.entityId }}</td>
                 <td>{{ event.traceId ?? "-" }}</td>
               </tr>
+              <tr aria-hidden="true" :style="{ height: virtualEvents.bottomSpacerPx.value + 'px' }" />
             </tbody>
           </table>
         </div>
@@ -327,6 +341,12 @@ function focusTrace(traceId: string | null): void {
 .table-wrap {
   margin-top: 0.7rem;
   overflow: auto;
+}
+
+.table-wrap.virtualized {
+  max-height: 400px;
+  overflow-y: auto;
+  contain: strict;
 }
 
 .events-table {

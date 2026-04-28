@@ -720,7 +720,39 @@ Issues encountered and resolved:
 - EPIC 5 (T5.1-T5.4) is complete and validated for this branch scope.
 - EPIC 6 / T6.1 Audit trail UI and API wiring is complete and validated.
 - EPIC 6 / T6.2 Layout persistence and role presets is complete and validated.
-- EPIC 6 / T6.2 Layout persistence and role presets is complete and validated.
+- EPIC 6 / T6.3 Performance hardening is complete and validated.
+
+### 22) EPIC 6 / T6.3 Performance hardening
+
+#### 22.1 Scope
+Prevent frame collapse under burst metric/event fixtures by introducing three targeted micro-optimisations to the render path:
+
+1. **Series decimation** – sparklines in MetricsView now cap each agent's reward series at 20 render points using `decimateSeriesForDisplay` (even-stride sampling). Raw sample counts and statistics (averageReward) continue to use the full series via a separate `rawRewardSamples` computed.
+2. **DOM virtualisation** – the events table in TimelineView uses a `useVirtualList` composable that renders only the visible window of rows plus a single top/bottom spacer `<tr>`, bounding DOM node count regardless of event volume. The scroll container carries `contain: strict` and a fixed `max-height`.
+3. **Payload serialisation cap** – `topic.ts` store feeds `payloadToJson` through `parseJsonSafe` with a 4 000-character preview limit, preventing unbounded O(n) JSON stringify on heavyweight topics.
+
+These utilities live in `ui/src/core/perf/` to keep the transport/domain/UI boundary clean.
+
+#### 22.2 Files introduced or modified for T6.3
+- `ui/src/core/perf/list-utils.ts` — NEW: `decimateSeriesForDisplay`, `parseJsonSafe`, `estimateWindowRows`
+- `ui/src/core/perf/list-utils.unit.test.ts` — NEW: 5 unit tests
+- `ui/src/core/perf/virtual-list.ts` — NEW: `useVirtualList` Vue composable
+- `ui/src/core/perf/virtual-list.unit.test.ts` — NEW: 4 unit tests
+- `ui/src/views/MetricsView.vue` — added `rawRewardSamples` (full fidelity) and decimated `rewardSamples` (sparkline only); summary card uses raw count
+- `ui/src/views/TimelineView.vue` — replaced static `slice(0, 120)` table with virtual-list spacer pattern; `contain: strict` on scroll container
+- `ui/src/stores/topic.ts` — `payloadToJson` now uses `parseJsonSafe` with 4 000-char cap
+
+#### 22.3 Validation results for T6.3
+- Typecheck: passed (`pnpm --filter @rosclaw/ui typecheck`).
+- Unit tests: passed (`pnpm --filter @rosclaw/ui test:unit`, 52 tests).
+- Integration tests: passed (`pnpm --filter @rosclaw/ui test:integration`, 20 tests).
+- E2E smoke: passed (`pnpm --filter @rosclaw/ui test:e2e -- ui/e2e/smoke.spec.ts`, 9 tests).
+
+#### 22.4 Known limitations after T6.3
+- `useVirtualList` assumes a fixed `rowHeightPx` for all rows; variable-height rows would need a more elaborate measured-height approach.
+- Series decimation uses even-stride sampling; min/max envelope preservation is not yet applied.
+- Payload preview cap is applied at the store level; the raw structured payload is still accessible for audit trail lookups.
+
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
