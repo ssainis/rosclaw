@@ -9,6 +9,7 @@ import { useTopicStore } from "../stores/topic";
 import { ensureDomainEventRouting, shutdownDomainEventRouting } from "./domain-event-routing";
 import {
   DEFAULT_CONTROL_ENDPOINTS,
+  submitEmergencyStop,
   submitModeChange,
   submitScenarioAction,
 } from "./control-center";
@@ -82,5 +83,33 @@ describe("control center integration", () => {
       status: "failed",
       error: "service unavailable",
     });
+  });
+
+  it("submits emergency stop with reason and emits audit-worthy critical alert", async () => {
+    const callService = vi.fn().mockResolvedValueOnce({ success: true });
+    const client = { callService } as never;
+
+    await expect(
+      submitEmergencyStop(client, DEFAULT_CONTROL_ENDPOINTS.estop, "human entered protected zone"),
+    ).resolves.toEqual({ success: true });
+
+    const controlStore = useControlStore();
+    const missionStore = useMissionStore();
+    const alertsStore = useAlertsStore();
+
+    expect(callService).toHaveBeenCalledWith(
+      "/control/estop",
+      { reason: "human entered protected zone" },
+      "rosclaw_msgs/srv/EStop",
+    );
+    expect(controlStore.latestAction).toMatchObject({
+      label: "Emergency stop",
+      status: "succeeded",
+      request: { reason: "human entered protected zone" },
+    });
+    expect(missionStore.current?.status).toBe("paused");
+    expect(missionStore.currentMissionMode).toBe("manual");
+    expect(alertsStore.criticalCount).toBe(1);
+    expect(alertsStore.alerts[0].message).toContain("Emergency stop activated");
   });
 });

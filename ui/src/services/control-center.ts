@@ -22,9 +22,10 @@ export const CONTROL_ACTION_KEYS = {
   mode: "mission:set-mode",
   start: "scenario:start",
   reset: "scenario:reset",
+  estop: "safety:estop",
 } as const;
 
-export const DEFAULT_CONTROL_ENDPOINTS: Record<"mode" | ScenarioAction, ControlEndpoint> = {
+export const DEFAULT_CONTROL_ENDPOINTS: Record<"mode" | ScenarioAction | "estop", ControlEndpoint> = {
   mode: {
     serviceName: "/control/set_mode",
     serviceType: "rosclaw_msgs/srv/SetMode",
@@ -36,6 +37,10 @@ export const DEFAULT_CONTROL_ENDPOINTS: Record<"mode" | ScenarioAction, ControlE
   reset: {
     serviceName: "/scenario/reset_episode",
     serviceType: "rosclaw_msgs/srv/ScenarioControl",
+  },
+  estop: {
+    serviceName: "/control/estop",
+    serviceType: "rosclaw_msgs/srv/EStop",
   },
 };
 
@@ -136,6 +141,58 @@ export async function submitScenarioAction(
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Scenario action failed";
+    controlStore.markFailed(actionId, message);
+    throw error;
+  }
+}
+
+export async function submitEmergencyStop(
+  client: RosbridgeClient,
+  endpoint: ControlEndpoint,
+  reason: string,
+): Promise<Record<string, unknown>> {
+  const actionKey = CONTROL_ACTION_KEYS.estop;
+  const controlStore = useControlStore();
+  const actionId = makeActionId(actionKey);
+  const traceId = makeTraceId(actionKey);
+  const payload = { reason };
+
+  controlStore.markPending({
+    actionId,
+    actionKey,
+    label: "Emergency stop",
+    endpointName: endpoint.serviceName,
+    endpointType: endpoint.serviceType,
+    traceId,
+    request: payload,
+    submittedAt: new Date().toISOString(),
+  });
+
+  try {
+    const response = await callRosService(client, endpoint.serviceName, endpoint.serviceType, payload);
+    publishMissionSnapshot("mission:state", traceId, {
+      status: "paused",
+      mode: "manual",
+    });
+    eventBus.publish(
+      buildCanonicalEventEnvelope({
+        source: "operator",
+        entity_type: "system",
+        entity_id: "safety",
+        event_type: "alert:raised",
+        severity: "critical",
+        trace_id: traceId,
+        payload: {
+          alert_id: `estop-${actionId}`,
+          severity: "critical",
+          message: `Emergency stop activated: ${reason}`,
+        },
+      }),
+    );
+    controlStore.markSucceeded(actionId, response);
+    return response;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Emergency stop failed";
     controlStore.markFailed(actionId, message);
     throw error;
   }

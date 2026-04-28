@@ -276,3 +276,87 @@ test("control view submits mode and scenario actions with visible provenance", a
     ]),
   );
 });
+
+test("global e-stop entry requires confirmation and records audit trail", async ({ page }) => {
+  await page.addInitScript(() => {
+    const sentMessages = [];
+    window.__rosbridgeSentMessages = sentMessages;
+
+    class MockSocket {
+      static instances = [];
+
+      onopen = null;
+      onclose = null;
+      onerror = null;
+      onmessage = null;
+
+      constructor(url) {
+        this.url = url;
+        MockSocket.instances.push(this);
+        queueMicrotask(() => {
+          this.onopen?.();
+        });
+      }
+
+      send(data) {
+        const message = JSON.parse(data);
+        sentMessages.push(message);
+
+        if (message.op === "call_service" && message.service === "/control/estop") {
+          queueMicrotask(() => {
+            this.onmessage?.({
+              data: JSON.stringify({
+                op: "service_response",
+                id: message.id,
+                service: "/control/estop",
+                result: true,
+                values: { success: true },
+              }),
+            });
+          });
+        }
+      }
+
+      close() {
+        this.onclose?.();
+      }
+    }
+
+    window.WebSocket = MockSocket;
+  });
+
+  await page.goto("/overview");
+
+  await page.getByTestId("topbar-estop-open").click();
+  await expect(page.getByTestId("topbar-estop-dialog")).toBeVisible();
+  await page.getByTestId("topbar-estop-submit").click();
+  await expect(page.getByTestId("topbar-estop-error")).toContainText("A reason is required");
+
+  await page.getByTestId("topbar-estop-reason").fill("obstacle detected in collision envelope");
+  await page.getByTestId("topbar-estop-submit").click();
+  await expect(page.getByTestId("topbar-estop-error")).toContainText(
+    "Confirm emergency stop before submitting",
+  );
+
+  await page.getByTestId("topbar-estop-confirm").check();
+  await page.getByTestId("topbar-estop-submit").click();
+  await expect(page.getByTestId("topbar-estop-dialog")).toBeHidden();
+
+  await page.getByTestId("side-nav").getByRole("link", { name: "Control" }).click();
+  await expect(page.getByTestId("control-action-history")).toContainText("Emergency stop");
+  await expect(page.getByTestId("control-action-history")).toContainText(
+    "obstacle detected in collision envelope",
+  );
+
+  const sentMessages = await page.evaluate(() => window.__rosbridgeSentMessages);
+  expect(sentMessages).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        op: "call_service",
+        service: "/control/estop",
+        type: "rosclaw_msgs/srv/EStop",
+        args: { reason: "obstacle detected in collision envelope" },
+      }),
+    ]),
+  );
+});
