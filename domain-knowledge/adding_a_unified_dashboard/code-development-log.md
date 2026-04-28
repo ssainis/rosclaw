@@ -721,6 +721,37 @@ Issues encountered and resolved:
 - EPIC 6 / T6.1 Audit trail UI and API wiring is complete and validated.
 - EPIC 6 / T6.2 Layout persistence and role presets is complete and validated.
 - EPIC 6 / T6.3 Performance hardening is complete and validated.
+- EPIC 6 / T6.4 Reliability hardening is complete and validated.
+- EPIC 6 (T6.1-T6.4) is complete and validated for this branch scope.
+
+### 23) EPIC 6 / T6.4 Reliability hardening
+
+#### 23.1 Scope
+Three targeted reliability layers:
+
+1. **Stale-state UX**: A degraded-mode banner is rendered inside the main content panel whenever any backend connection (`rosbridge` or `rl`) enters `stale`, `reconnecting`, or `failed` state. The banner includes a "Reconnect" button that tears down and re-establishes the rosbridge transport.
+2. **Partial failure boundaries**: A `PanelErrorBoundary.vue` component (using `onErrorCaptured`) wraps all routed views via the `<RouterView>` slot in `AppShell.vue`. Any uncaught Vue render error in a view is isolated: the rest of the shell (header, nav, other panels) remains functional and the operator sees a recoverable error panel with a Retry action.
+3. **Diagnostics reconnect action**: `reconnectRosbridge()` is exported from `rosbridge-connection.ts` and wired to the banner's Reconnect button, providing an operator-accessible manual recovery path.
+
+#### 23.2 Files introduced or modified for T6.4
+- `ui/src/services/rosbridge-connection.ts` — added `reconnectRosbridge()` export (shutdown + re-init)
+- `ui/src/components/AppShell.vue` — imported `reconnectRosbridge` and `PanelErrorBoundary`; added `isDegraded` computed, `handleReconnect()` action, degraded-mode banner template, banner CSS; replaced `<RouterView />` with slot pattern wrapping `PanelErrorBoundary`
+- `ui/src/components/PanelErrorBoundary.vue` — NEW: generic Vue error boundary wrapper using `onErrorCaptured`; exposes `error`/`reset` for testability
+- `ui/src/components/PanelErrorBoundary.unit.test.ts` — NEW: 4 unit tests covering slot rendering, error state injection, retry action, and default label
+- `ui/src/main.ts` — exposes `window.__pinia` in non-production mode to enable E2E store state injection
+- `ui/e2e/smoke.spec.ts` — added degraded-mode banner E2E test (inject stale state via Pinia, verify banner visibility, restore and verify banner gone)
+
+#### 23.3 Validation results for T6.4
+- Typecheck: passed (`pnpm --filter @rosclaw/ui typecheck`).
+- Unit tests: passed (`pnpm --filter @rosclaw/ui test:unit`, 56 tests).
+- Integration tests: passed (`pnpm --filter @rosclaw/ui test:integration`, 20 tests).
+- E2E smoke: passed (`pnpm --filter @rosclaw/ui test:e2e -- ui/e2e/smoke.spec.ts`, 10 tests).
+
+#### 23.4 Known limitations after T6.4
+- `reconnectRosbridge` only reconnects the rosbridge transport; RL WebSocket reconnection is handled by its own service and is not triggered by the banner's Reconnect button.
+- The degraded banner does not distinguish between which backend is degraded; it is intentionally a single-signal indicator to keep the UX simple.
+- `window.__pinia` exposure is gated on `MODE !== "production"`. This should be audited before any production build promotion.
+
 
 ### 22) EPIC 6 / T6.3 Performance hardening
 
@@ -773,6 +804,10 @@ Use this section to keep an atomized record of commits as each phase is complete
 | 2026-04-28 | 7555afc | feat: complete Epic 5 T5.1 overview productionization | Phase 5 - T5.1 overview productionization |
 | 2026-04-28 | c6018d8 | feat: complete Epic 5 T5.2 metrics and rewards panel | Phase 5 - T5.2 metrics and rewards panel |
 | 2026-04-28 | b6d1f24 | feat: complete Epic 5 T5.3 mission timeline view | Phase 5 - T5.3 mission timeline v1 |
+| 2026-04-28 | ce5b53d | feat: complete Epic 5 T5.4 alerts and safety panel | Phase 5 - T5.4 alerts and safety panel |
+| 2026-04-28 | cf66dad | feat: complete Epic 6 T6.1 audit trail UI and API wiring | Epic 6 - T6.1 audit trail |
+| 2026-04-28 | 9d95d32 | feat: complete Epic 6 T6.2 layout persistence and role presets | Epic 6 - T6.2 layout persistence |
+| 2026-04-28 | 66e5b8b | feat: complete Epic 6 T6.3 performance hardening | Epic 6 - T6.3 perf hardening |
 
 ### Ledger update rules
 - Add one row per atomic commit.

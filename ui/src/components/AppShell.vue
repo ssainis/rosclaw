@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { RouterLink, RouterView } from "vue-router";
-import { ensureRosbridgeConnection, getRosbridgeClient } from "../services/rosbridge-connection";
+import PanelErrorBoundary from "./PanelErrorBoundary.vue";
+import { ensureRosbridgeConnection, getRosbridgeClient, reconnectRosbridge } from "../services/rosbridge-connection";
 import {
   DEFAULT_CONTROL_ENDPOINTS,
   submitEmergencyStop,
@@ -65,6 +66,16 @@ const rlBadge = computed(() => {
 
 function currentClient() {
   return getRosbridgeClient() ?? ensureRosbridgeConnection();
+}
+
+const DEGRADED_STATES = new Set(["stale", "reconnecting", "failed"]);
+const isDegraded = computed(
+  () =>
+    DEGRADED_STATES.has(store.rosbridge.status) || DEGRADED_STATES.has(store.rl.status),
+);
+
+function handleReconnect(): void {
+  reconnectRosbridge();
 }
 
 function openEstopDialog(): void {
@@ -169,7 +180,28 @@ async function submitEstop(): Promise<void> {
       </nav>
 
       <main class="content" data-testid="content-panel">
-        <RouterView />
+        <div
+          v-if="isDegraded"
+          class="degraded-banner"
+          data-testid="degraded-banner"
+          role="alert"
+        >
+          <span class="degraded-icon" aria-hidden="true">⚠</span>
+          <span class="degraded-text">One or more backend connections are degraded.</span>
+          <button
+            type="button"
+            class="degraded-reconnect"
+            data-testid="degraded-reconnect"
+            @click="handleReconnect"
+          >
+            Reconnect
+          </button>
+        </div>
+        <RouterView v-slot="{ Component, route }">
+          <PanelErrorBoundary :key="route.fullPath" :panel-label="String(route.name ?? route.path)">
+            <component :is="Component" />
+          </PanelErrorBoundary>
+        </RouterView>
       </main>
     </div>
   </div>
@@ -347,6 +379,42 @@ async function submitEstop(): Promise<void> {
 .content {
   padding: 1rem;
   background: radial-gradient(circle at 18% 0%, #f4f8fb, #e7eef2 44%, #dfe8ed);
+}
+
+.degraded-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.4rem;
+  background: #fffbe6;
+  border: 1px solid #f5c200;
+  color: #6b4e00;
+  font-size: 0.9rem;
+}
+
+.degraded-icon {
+  flex-shrink: 0;
+}
+
+.degraded-text {
+  flex: 1;
+}
+
+.degraded-reconnect {
+  padding: 0.25rem 0.65rem;
+  border: 1px solid #c79a00;
+  border-radius: 0.3rem;
+  background: #f5c200;
+  color: #3a2900;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.degraded-reconnect:hover {
+  background: #e6b400;
 }
 
 @media (max-width: 900px) {

@@ -36,6 +36,15 @@ export function getRosbridgeClient(): RosbridgeClient | null {
   return client;
 }
 
+/**
+ * Tear down and immediately re-establish the rosbridge connection.
+ * Useful for operator-triggered diagnostics from a degraded-mode UI.
+ */
+export function reconnectRosbridge(): RosbridgeClient {
+  shutdownRosbridgeConnection();
+  return ensureRosbridgeConnection();
+}
+
 export function shutdownRosbridgeConnection(): void {
   if (freshnessTimer) {
     clearInterval(freshnessTimer);

@@ -412,3 +412,33 @@ test("global e-stop entry requires confirmation and records audit trail", async 
     ]),
   );
 });
+
+test("degraded-mode banner appears when connection is stale and hides when connected", async ({
+  page,
+}) => {
+  await page.goto("/overview");
+  await expect(page.getByTestId("topbar")).toBeVisible();
+
+  // Inject a stale state directly into Pinia's reactive state map.
+  await page.evaluate(() => {
+    // Pinia exposes internal stores on the app — access via _s map on the pinia instance.
+    // The pinia instance is attached to the Vue app; we reach it via the window-mounted app.
+    const pinia = (window as unknown as { __pinia?: { state: { value: Record<string, unknown> } } }).__pinia;
+    if (pinia && pinia.state.value["connection"]) {
+      (pinia.state.value["connection"] as { rosbridge: { status: string } }).rosbridge.status = "stale";
+    }
+  });
+
+  await expect(page.getByTestId("degraded-banner")).toBeVisible({ timeout: 3000 });
+  await expect(page.getByTestId("degraded-reconnect")).toBeVisible();
+
+  // Restore connected state.
+  await page.evaluate(() => {
+    const pinia = (window as unknown as { __pinia?: { state: { value: Record<string, unknown> } } }).__pinia;
+    if (pinia && pinia.state.value["connection"]) {
+      (pinia.state.value["connection"] as { rosbridge: { status: string } }).rosbridge.status = "connected";
+    }
+  });
+
+  await expect(page.getByTestId("degraded-banner")).toBeHidden({ timeout: 3000 });
+});
