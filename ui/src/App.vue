@@ -13,6 +13,7 @@ import {
   ensureRosbridgeConnection,
   shutdownRosbridgeConnection,
 } from "./services/rosbridge-connection";
+import { ensureRlConnection, shutdownRlConnection } from "./services/rl-connection";
 
 const robotStore = useRobotStore();
 const agentStore = useAgentStore();
@@ -21,6 +22,7 @@ const alertsStore = useAlertsStore();
 
 onMounted(() => {
   ensureRosbridgeConnection();
+  ensureRlConnection();
   ensureDomainEventRouting({
     robotStore,
     agentStore,
@@ -31,6 +33,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   shutdownDomainEventRouting();
+  shutdownRlConnection();
   shutdownRosbridgeConnection();
 });
 </script>

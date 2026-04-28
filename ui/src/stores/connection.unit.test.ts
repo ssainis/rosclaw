@@ -45,4 +45,24 @@ describe("connection store", () => {
     store.markRosbridgeMessageReceived(8_000);
     expect(store.rosbridge.status).toBe("connected");
   });
+
+  it("tracks RL websocket and REST fallback state independently", () => {
+    const store = useConnectionStore();
+
+    store.setRlTransportStatus("connecting");
+    expect(store.rl.status).toBe("connecting");
+    expect(store.rl.transport).toBe("ws");
+
+    store.setRlFallbackStatus("connected");
+    expect(store.rl.status).toBe("connected");
+    expect(store.rl.transport).toBe("rest");
+
+    store.markRlMessageReceived(1_000, "rest");
+    store.evaluateRlFreshness(5_000, 7_001);
+    expect(store.rl.status).toBe("stale");
+
+    store.markRlMessageReceived(8_000, "rest");
+    expect(store.rl.status).toBe("connected");
+    expect(store.rl.transport).toBe("rest");
+  });
 });

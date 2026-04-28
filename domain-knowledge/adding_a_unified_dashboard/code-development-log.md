@@ -238,6 +238,43 @@ Issues encountered and resolved:
 - Completed only the T3.1 ingest start requested here: RL WebSocket message normalization into canonical events plus safe agent-store handling.
 - Live RL WebSocket connection lifecycle, runtime app wiring, REST fallback, and Agents view work remain out of scope for this atomic commit.
 
+### 10) Phase 3 implementation continued (EPIC 3 / T3.1 + T3.2)
+
+#### 10.1 Live RL WebSocket runtime wiring completed
+- Added a reconnecting RL stream client in `ui/src/rl/client.ts`.
+- Added runtime RL connection service in `ui/src/services/rl-connection.ts`.
+- Wired app lifecycle in `ui/src/App.vue` so RL connection startup and teardown now happen alongside rosbridge and domain-event routing.
+- Added RL connection badge state to `ui/src/components/AppShell.vue` so the shell now reports effective RL backend status instead of a hardcoded idle placeholder.
+
+#### 10.2 Connection model extended for dual backend status
+- Extended `ui/src/stores/connection.ts` to track RL backend state independently from rosbridge.
+- Added transport attribution (`ws` or `rest`) for backend badges and degraded-mode visibility.
+- Added RL freshness evaluation and message-received tracking consistent with the existing rosbridge path.
+
+#### 10.3 RL REST fallback implemented
+- Added REST fallback polling to `ui/src/services/rl-connection.ts` for cases where RL WebSocket retries are exhausted.
+- Added tolerant snapshot fetching across likely endpoint candidates derived from the configured base URL.
+- Extended `ui/src/services/rl-ws-adapter.ts` so REST snapshot payloads normalize into canonical `rl-rest` agent events using the same event bus and store routing path as RL WebSocket messages.
+- Current fallback scope is intentionally read-only and state-oriented: polling agent snapshots/status data into canonical events. Control/command fallback remains out of scope for Epic 3.
+
+#### 10.4 Tests added for live runtime and degraded mode
+- Added integration tests in `ui/src/services/rl-connection.integration.test.ts` covering:
+  - live RL WebSocket message ingest into domain stores
+  - REST fallback polling after WebSocket reconnect exhaustion
+- Extended `ui/src/stores/connection.unit.test.ts` to cover RL transport and REST fallback state transitions.
+
+#### 10.5 Validation results for T3.2 boundary
+- Focused validation: passed (`ui/src/services/rl-connection.integration.test.ts`, `ui/src/services/rl-ws-adapter.integration.test.ts`, `ui/src/stores/connection.unit.test.ts`).
+- Typecheck: passed.
+- Unit tests: passed (15 tests).
+- Integration tests: passed (12 tests).
+- E2E smoke: passed (`shell and overview render`).
+
+#### 10.6 Scope status after T3.2
+- T3.1 is now complete as a live runtime path, not just a replay-fixture ingest slice.
+- T3.2 RL REST fallback is complete for degraded-mode state visibility and agent snapshot ingestion.
+- T3.3 Agents MVP view remains the next slice.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -261,12 +298,16 @@ Issues encountered and resolved:
 - pnpm-lock.yaml
 - ui/src/services/rl-ws-adapter.ts
 - ui/src/services/rl-ws-adapter.integration.test.ts
+- ui/src/rl/client.ts
+- ui/src/rl/index.ts
+- ui/src/services/rl-connection.ts
+- ui/src/services/rl-connection.integration.test.ts
 
 ## Current status
 - Phase 1 remains complete and validated.
 - Phase 2 EPIC 2 (T2.1, T2.2, T2.3) is complete and validated.
-- EPIC 3 / T3.1 has started with the initial RL canonical ingest slice complete and validated.
-- Live RL transport wiring and downstream RL UI surfaces remain intentionally unstarted in this slice.
+- EPIC 3 T3.1 and T3.2 are complete and validated.
+- EPIC 3 T3.3 Agents MVP view is the remaining slice.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.

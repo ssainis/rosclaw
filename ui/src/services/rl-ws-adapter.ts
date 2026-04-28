@@ -1,5 +1,5 @@
 import type { EventBus, EventPublishResult } from "../core/events/bus";
-import type { CanonicalEventEnvelope } from "../core/events/envelope";
+import type { CanonicalEventEnvelope, EventSource } from "../core/events/envelope";
 import { buildCanonicalEventEnvelope } from "../core/events/envelope";
 
 type RlWsEventKind = "agent:status" | "agent:reward" | "agent:action";
@@ -15,6 +15,12 @@ export interface RlWsIngestResult {
   envelope?: CanonicalEventEnvelope;
   errors: string[];
   publishResult?: EventPublishResult;
+}
+
+export interface RlBatchNormalizationResult {
+  ok: boolean;
+  envelopes: CanonicalEventEnvelope[];
+  errors: string[];
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -87,9 +93,11 @@ function extractAgentId(
   return firstDefinedString(
     payload.agent_id,
     payload.agentId,
+    payload.id,
     agent?.id,
     message.agent_id,
     message.agentId,
+    message.id,
     asRecord(message.agent)?.id,
   );
 }
@@ -126,7 +134,12 @@ function buildRewardPayload(payload: Record<string, unknown>): Record<string, un
 }
 
 function buildActionPayload(payload: Record<string, unknown>): Record<string, unknown> {
-  const action = firstDefinedString(payload.action, payload.action_name, payload.actionName, payload.preview);
+  const action = firstDefinedString(
+    payload.action,
+    payload.action_name,
+    payload.actionName,
+    payload.preview,
+  );
 
   return {
     ...payload,
@@ -147,11 +160,25 @@ function buildNormalizedPayload(
   return buildActionPayload(payload);
 }
 
-export function normalizeRlWsMessage(
+function safeParseRlInput(input: unknown): Record<string, unknown> | null {
+  if (typeof input === "string") {
+    try {
+      return asRecord(JSON.parse(input) as unknown);
+    } catch {
+      return null;
+    }
+  }
+
+  return asRecord(input);
+}
+
+function normalizeRlMessage(
   input: unknown,
+  source: EventSource,
   receivedAt = new Date(),
+  defaultEventType?: RlWsEventKind,
 ): RlWsNormalizationResult {
-  const message = typeof input === "string" ? asRecord(JSON.parse(input) as unknown) : asRecord(input);
+  const message = safeParseRlInput(input);
   if (!message) {
     return { ok: false, errors: ["RL message must be a JSON object"] };
   }
@@ -163,7 +190,9 @@ export function normalizeRlWsMessage(
     normalizeKind(message.kind) ??
     normalizeKind(payload.type) ??
     normalizeKind(payload.event) ??
-    normalizeKind(payload.kind);
+    normalizeKind(payload.kind) ??
+    defaultEventType ??
+    null;
 
   if (!eventType) {
     return { ok: false, errors: ["RL message type was not recognized"] };
@@ -191,7 +220,7 @@ export function normalizeRlWsMessage(
 
   const envelope = buildCanonicalEventEnvelope(
     {
-      source: "rl-ws",
+      source,
       entity_type: "agent",
       entity_id: entityId,
       event_type: eventType,
@@ -203,6 +232,57 @@ export function normalizeRlWsMessage(
   );
 
   return { ok: true, envelope, errors: [] };
+}
+
+function collectRlRestRecords(input: unknown): unknown[] {
+  if (Array.isArray(input)) {
+    return input;
+  }
+
+  const record = safeParseRlInput(input);
+  if (!record) {
+    return [input];
+  }
+
+  const collections = [record.events, record.agents, record.items, record.data];
+  for (const collection of collections) {
+    if (Array.isArray(collection)) {
+      return collection;
+    }
+  }
+
+  return [record];
+}
+
+export function normalizeRlWsMessage(
+  input: unknown,
+  receivedAt = new Date(),
+): RlWsNormalizationResult {
+  return normalizeRlMessage(input, "rl-ws", receivedAt);
+}
+
+export function normalizeRlRestPayload(
+  input: unknown,
+  receivedAt = new Date(),
+): RlBatchNormalizationResult {
+  const envelopes: CanonicalEventEnvelope[] = [];
+  const errors: string[] = [];
+
+  for (const record of collectRlRestRecords(input)) {
+    const normalized = normalizeRlMessage(record, "rl-rest", receivedAt, "agent:status");
+    if (normalized.ok && normalized.envelope) {
+      envelopes.push(normalized.envelope);
+      continue;
+    }
+
+    errors.push(...normalized.errors);
+  }
+
+  return {
+    ok: errors.length === 0,
+    envelopes,
+    errors,
+  };
 }
 
 export function ingestRlWsMessage(
@@ -226,4 +306,21 @@ export function ingestRlWsMessage(
     const message = error instanceof Error ? error.message : String(error);
     return { ok: false, errors: [message] };
   }
+}
+
+export function ingestRlRestPayload(
+  bus: EventBus,
+  input: unknown,
+  receivedAt = new Date(),
+): { ok: boolean; errors: string[]; publishResults: EventPublishResult[] } {
+  const normalized = normalizeRlRestPayload(input, receivedAt);
+  if (!normalized.ok) {
+    return { ok: false, errors: normalized.errors, publishResults: [] };
+  }
+
+  return {
+    ok: true,
+    errors: [],
+    publishResults: normalized.envelopes.map((envelope) => bus.publish(envelope)),
+  };
 }

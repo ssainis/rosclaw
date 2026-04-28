@@ -33,6 +33,23 @@ const rosbridgeBadge = computed(() => {
     label: status,
   };
 });
+
+const rlBadge = computed(() => {
+  const status = store.rl.status;
+  const tone =
+    status === "connected"
+      ? "is-ok"
+      : status === "stale" || status === "reconnecting"
+        ? "is-warning"
+        : status === "failed"
+          ? "is-error"
+          : "is-neutral";
+
+  return {
+    tone,
+    label: store.rl.transport ? `${status} (${store.rl.transport})` : status,
+  };
+});
 </script>
 
 <template>
@@ -43,7 +60,9 @@ const rosbridgeBadge = computed(() => {
         <span class="badge" :class="rosbridgeBadge.tone" data-testid="rosbridge-status">
           rosbridge: {{ rosbridgeBadge.label }}
         </span>
-        <span class="badge is-neutral" data-testid="rl-status">rl: idle</span>
+        <span class="badge" :class="rlBadge.tone" data-testid="rl-status">
+          rl: {{ rlBadge.label }}
+        </span>
       </div>
     </header>
 

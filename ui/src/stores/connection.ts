@@ -13,6 +13,61 @@ interface BackendConnection {
   status: UiConnectionState;
   lastChangedAt: number;
   lastMessageAt: number | null;
+  transport: "ws" | "rest" | null;
+}
+
+function idleBackendConnection(): BackendConnection {
+  return {
+    status: "idle",
+    lastChangedAt: now(),
+    lastMessageAt: null,
+    transport: null,
+  };
+}
+
+function markBackendTransportStatus(
+  backend: BackendConnection,
+  status: ConnectionStatus,
+  transport: "ws" | "rest",
+): void {
+  const next = toUiState(status);
+  if (backend.status !== next) {
+    backend.status = next;
+    backend.lastChangedAt = now();
+  }
+
+  backend.transport = transport;
+  if (next === "connected") {
+    backend.lastMessageAt = now();
+  }
+}
+
+function markBackendMessageReceived(
+  backend: BackendConnection,
+  at: number,
+  transport: "ws" | "rest",
+): void {
+  backend.lastMessageAt = at;
+  backend.transport = transport;
+  if (backend.status === "stale" || backend.status !== "connected") {
+    backend.status = "connected";
+    backend.lastChangedAt = at;
+  }
+}
+
+function evaluateBackendFreshness(
+  backend: BackendConnection,
+  maxAgeMs: number,
+  at: number,
+): void {
+  if (backend.status !== "connected") return;
+  if (backend.lastMessageAt === null) return;
+
+  const age = at - backend.lastMessageAt;
+  if (age > maxAgeMs) {
+    backend.status = "stale";
+    backend.lastChangedAt = at;
+  }
 }
 
 function now(): number {
@@ -30,40 +85,37 @@ function toUiState(status: ConnectionStatus): UiConnectionState {
 
 export const useConnectionStore = defineStore("connection", {
   state: () => ({
-    rosbridge: {
-      status: "idle",
-      lastChangedAt: now(),
-      lastMessageAt: null,
-    } as BackendConnection,
+    rosbridge: idleBackendConnection(),
+    rl: idleBackendConnection(),
   }),
   actions: {
     setRosbridgeTransportStatus(status: ConnectionStatus) {
-      const next = toUiState(status);
-      if (this.rosbridge.status !== next) {
-        this.rosbridge.status = next;
-        this.rosbridge.lastChangedAt = now();
-      }
-
-      if (next === "connected") {
-        this.rosbridge.lastMessageAt = now();
-      }
+      markBackendTransportStatus(this.rosbridge, status, "ws");
     },
     markRosbridgeMessageReceived(at = now()) {
-      this.rosbridge.lastMessageAt = at;
-      if (this.rosbridge.status === "stale") {
-        this.rosbridge.status = "connected";
-        this.rosbridge.lastChangedAt = at;
-      }
+      markBackendMessageReceived(this.rosbridge, at, "ws");
     },
     evaluateRosbridgeFreshness(maxAgeMs = 5000, at = now()) {
-      if (this.rosbridge.status !== "connected") return;
-      if (this.rosbridge.lastMessageAt === null) return;
-
-      const age = at - this.rosbridge.lastMessageAt;
-      if (age > maxAgeMs) {
-        this.rosbridge.status = "stale";
-        this.rosbridge.lastChangedAt = at;
+      evaluateBackendFreshness(this.rosbridge, maxAgeMs, at);
+    },
+    setRlTransportStatus(status: ConnectionStatus) {
+      markBackendTransportStatus(this.rl, status, "ws");
+    },
+    setRlFallbackStatus(status: Exclude<UiConnectionState, "reconnecting">) {
+      if (this.rl.status !== status) {
+        this.rl.status = status;
+        this.rl.lastChangedAt = now();
       }
+      this.rl.transport = "rest";
+      if (status === "connected") {
+        this.rl.lastMessageAt = now();
+      }
+    },
+    markRlMessageReceived(at = now(), transport: "ws" | "rest" = "ws") {
+      markBackendMessageReceived(this.rl, at, transport);
+    },
+    evaluateRlFreshness(maxAgeMs = 5000, at = now()) {
+      evaluateBackendFreshness(this.rl, maxAgeMs, at);
     },
   },
 });
