@@ -5,6 +5,7 @@ import TopicsView from "../views/TopicsView.vue";
 import ControlView from "../views/ControlView.vue";
 import MetricsView from "../views/MetricsView.vue";
 import TimelineView from "../views/TimelineView.vue";
+import AlertsView from "../views/AlertsView.vue";
 import PlaceholderView from "../views/PlaceholderView.vue";
 
 export const routes = [
@@ -47,11 +48,7 @@ export const routes = [
   {
     path: "/alerts",
     name: "alerts",
-    component: PlaceholderView,
-    props: {
-      title: "Alerts and Safety",
-      description: "Severity feeds and safety workflows land in this view during Phase 2.",
-    },
+    component: AlertsView,
   },
   {
     path: "/settings",

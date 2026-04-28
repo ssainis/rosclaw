@@ -33,6 +33,14 @@ test("timeline view route renders", async ({ page }) => {
   await expect(page.getByTestId("timeline-filters")).toBeVisible();
 });
 
+test("alerts view route renders", async ({ page }) => {
+  await page.goto("/alerts");
+
+  await expect(page.getByTestId("topbar")).toBeVisible();
+  await expect(page.getByTestId("alerts-view")).toBeVisible();
+  await expect(page.getByTestId("alerts-summary")).toBeVisible();
+});
+
 test("topics view exposes /odom subscription and validated publish/service flows", async ({ page }) => {
   await page.addInitScript(() => {
     const sentMessages = [];

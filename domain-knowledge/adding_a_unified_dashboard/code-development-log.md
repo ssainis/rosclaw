@@ -555,6 +555,39 @@ Issues encountered and resolved:
 - Trace correlation currently relies on existing `trace_id` presence in upstream events and does not infer synthetic traces.
 - Timeline display is table-based MVP and does not yet include grouped swimlanes or time-scale zoom interactions.
 
+### 19) Phase 5 implementation completed (EPIC 5 / T5.4)
+
+#### 19.1 Alerts and safety panel delivered scope
+- Added `ui/src/views/AlertsView.vue` and replaced the `/alerts` placeholder route with a live alerts and safety panel.
+- Panel capabilities include:
+  - severity/open-state summary cards
+  - severity filtering and acknowledged-toggle filtering
+  - explicit acknowledge button for open alerts
+  - source/time/trace visibility on alert records
+- Added `ui/src/services/alerts-safety.ts` for canonical alert acknowledgment publication through the existing event bus and routing pathway.
+- Added integration coverage in `ui/src/services/alerts-safety.integration.test.ts` to verify raised-alert to acknowledged-alert transition through shared domain-event routing.
+- Added view-level unit coverage in `ui/src/views/AlertsView.unit.test.ts` for filtering and acknowledgment action wiring.
+
+#### 19.2 Files changed for T5.4
+- domain-knowledge/adding_a_unified_dashboard/code-development-log.md
+- ui/e2e/smoke.spec.ts
+- ui/src/router/index.ts
+- ui/src/services/alerts-safety.integration.test.ts
+- ui/src/services/alerts-safety.ts
+- ui/src/views/AlertsView.unit.test.ts
+- ui/src/views/AlertsView.vue
+
+#### 19.3 Validation results for T5.4
+- Typecheck: passed (`pnpm --filter @rosclaw/ui typecheck`).
+- Unit tests: passed (`pnpm --filter @rosclaw/ui test:unit`, 40 tests).
+- Integration tests: passed (`pnpm --filter @rosclaw/ui test:integration`, 20 tests).
+- E2E smoke: passed (`pnpm --filter @rosclaw/ui test:e2e -- ui/e2e/smoke.spec.ts`, 8 tests).
+
+#### 19.4 Known limitations after T5.4
+- Acknowledgment currently updates in-memory dashboard state via canonical `alert:ack` events; backend persistence/audit storage remains a later governance scope.
+- The panel currently supports operator acknowledgment but does not yet enforce role-based authorization controls.
+- Alert history retention is bounded by the current in-memory store model.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -612,6 +645,8 @@ Issues encountered and resolved:
 - EPIC 5 / T5.1 Overview productionization is complete and validated.
 - EPIC 5 / T5.2 Metrics and rewards panel v1 is complete and validated.
 - EPIC 5 / T5.3 Mission timeline v1 is complete and validated.
+- EPIC 5 / T5.4 Alerts and safety panel is complete and validated.
+- EPIC 5 (T5.1-T5.4) is complete and validated for this branch scope.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
@@ -631,6 +666,7 @@ Use this section to keep an atomized record of commits as each phase is complete
 | 2026-04-28 | 8c3e43b | feat: complete Epic 4 T4.4 emergency stop entry and confirmation | Phase 4 - T4.4 emergency stop and audit path |
 | 2026-04-28 | 7555afc | feat: complete Epic 5 T5.1 overview productionization | Phase 5 - T5.1 overview productionization |
 | 2026-04-28 | c6018d8 | feat: complete Epic 5 T5.2 metrics and rewards panel | Phase 5 - T5.2 metrics and rewards panel |
+| 2026-04-28 | b6d1f24 | feat: complete Epic 5 T5.3 mission timeline view | Phase 5 - T5.3 mission timeline v1 |
 
 ### Ledger update rules
 - Add one row per atomic commit.
