@@ -1,6 +1,6 @@
 export type EventSource = "rosbridge" | "rl-ws" | "rl-rest" | "operator";
 
-export type EventEntityType = "robot" | "agent" | "mission" | "system";
+export type EventEntityType = "robot" | "agent" | "mission" | "system" | "topic";
 
 export type EventSeverity = "info" | "warning" | "error" | "critical";
 
@@ -47,6 +47,7 @@ const EVENT_ENTITY_TYPE_VALUES: readonly EventEntityType[] = [
   "agent",
   "mission",
   "system",
+  "topic",
 ];
 
 const EVENT_SEVERITY_VALUES: readonly EventSeverity[] = [
@@ -103,7 +104,7 @@ export function validateCanonicalEventEnvelope(value: unknown): EnvelopeValidati
   }
 
   if (!EVENT_ENTITY_TYPE_VALUES.includes(value.entity_type as EventEntityType)) {
-    errors.push("entity_type must be one of: robot, agent, mission, system");
+    errors.push("entity_type must be one of: robot, agent, mission, system, topic");
   }
 
   if (!isNonEmptyString(value.entity_id)) {

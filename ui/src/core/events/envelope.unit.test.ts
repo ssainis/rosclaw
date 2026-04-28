@@ -56,7 +56,7 @@ describe("canonical event envelope", () => {
       "source must be one of: rosbridge, rl-ws, rl-rest, operator",
     );
     expect(validation.errors).toContain(
-      "entity_type must be one of: robot, agent, mission, system",
+      "entity_type must be one of: robot, agent, mission, system, topic",
     );
     expect(validation.errors).toContain("entity_id must be a non-empty string");
     expect(validation.errors).toContain("event_type must be a non-empty string");

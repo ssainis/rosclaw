@@ -6,6 +6,7 @@ import { useAgentStore } from "../stores/agent";
 import { useAlertsStore } from "../stores/alerts";
 import { useMissionStore } from "../stores/mission";
 import { useRobotStore } from "../stores/robot";
+import { useTopicStore } from "../stores/topic";
 import { setupDomainEventRoutingForBus } from "./domain-event-routing";
 
 describe("domain event routing integration", () => {
@@ -19,6 +20,7 @@ describe("domain event routing integration", () => {
     const agentStore = useAgentStore();
     const missionStore = useMissionStore();
     const alertsStore = useAlertsStore();
+    const topicStore = useTopicStore();
     const bus = createEventBus();
 
     const dispose = setupDomainEventRoutingForBus(bus, {
@@ -26,6 +28,7 @@ describe("domain event routing integration", () => {
       agentStore,
       missionStore,
       alertsStore,
+      topicStore,
     });
 
     bus.publish(
@@ -74,6 +77,23 @@ describe("domain event routing integration", () => {
 
     bus.publish(
       buildCanonicalEventEnvelope({
+        source: "rosbridge",
+        entity_type: "topic",
+        entity_id: "/odom",
+        event_type: "topic:/odom",
+        payload: {
+          pose: {
+            pose: {
+              position: { x: 4, y: 5 },
+              orientation: { z: 0, w: 1 },
+            },
+          },
+        },
+      }),
+    );
+
+    bus.publish(
+      buildCanonicalEventEnvelope({
         source: "operator",
         entity_type: "system",
         entity_id: "alerts",
@@ -91,6 +111,7 @@ describe("domain event routing integration", () => {
     expect(agentStore.statusCounts.running).toBe(1);
     expect(missionStore.isMissionActive).toBe(true);
     expect(alertsStore.criticalCount).toBe(1);
+    expect(topicStore.topics[0]).toMatchObject({ name: "/odom", messageCount: 1 });
 
     dispose();
   });
@@ -102,6 +123,7 @@ describe("domain event routing integration", () => {
       agentStore: useAgentStore(),
       missionStore: useMissionStore(),
       alertsStore: useAlertsStore(),
+      topicStore: useTopicStore(),
     });
 
     bus.publish({ bad: "event" });

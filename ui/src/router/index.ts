@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import OverviewView from "../views/OverviewView.vue";
 import AgentsView from "../views/AgentsView.vue";
+import TopicsView from "../views/TopicsView.vue";
 import PlaceholderView from "../views/PlaceholderView.vue";
 
 export const routes = [
@@ -23,11 +24,7 @@ export const routes = [
   {
     path: "/topics",
     name: "topics",
-    component: PlaceholderView,
-    props: {
-      title: "Topics and Messages",
-      description: "Topic discovery and message inspection land in this view during Phase 2.",
-    },
+    component: TopicsView,
   },
   {
     path: "/control",

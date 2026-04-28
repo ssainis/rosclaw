@@ -106,4 +106,51 @@ describe("RosbridgeClient reconnect behavior", () => {
 
     expect(statuses).toContain("failed");
   });
+
+  it("resolves rosbridge service calls with service_response payloads", async () => {
+    const client = new RosbridgeClient({
+      url: "ws://test:9090",
+      reconnect: false,
+    });
+
+    client.connect();
+    const socket = MockWebSocket.instances[0];
+    socket.emitOpen();
+
+    const responsePromise = client.callService("/rosapi/topics", {}, 1000);
+
+    const call = JSON.parse(socket.sentMessages[0]);
+    expect(call).toMatchObject({
+      op: "call_service",
+      service: "/rosapi/topics",
+    });
+
+    socket.emitMessage(
+      JSON.stringify({
+        op: "service_response",
+        id: call.id,
+        service: "/rosapi/topics",
+        result: true,
+        values: { topics: ["/odom", "/scan"] },
+      }),
+    );
+
+    await expect(responsePromise).resolves.toEqual({ topics: ["/odom", "/scan"] });
+  });
+
+  it("rejects rosbridge service calls when no response arrives before timeout", async () => {
+    const client = new RosbridgeClient({
+      url: "ws://test:9090",
+      reconnect: false,
+    });
+
+    client.connect();
+    const socket = MockWebSocket.instances[0];
+    socket.emitOpen();
+
+    const responsePromise = client.callService("/rosapi/topics", {}, 10);
+    vi.advanceTimersByTime(10);
+
+    await expect(responsePromise).rejects.toThrow("rosbridge service call timed out");
+  });
 });

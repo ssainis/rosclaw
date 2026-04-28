@@ -14,6 +14,14 @@ export class RosbridgeClient {
   private status: ConnectionStatus = "idle";
   private messageHandlers = new Map<string, Set<MessageHandler>>();
   private topicTypes = new Map<string, string>();
+  private pendingServiceCalls = new Map<
+    string,
+    {
+      reject: (reason?: unknown) => void;
+      resolve: (value: Record<string, unknown>) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
+  >();
   private connectionHandlers = new Set<ConnectionHandler>();
   private intentionalClose = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -102,6 +110,35 @@ export class RosbridgeClient {
     this.send({ op: "publish", topic, type: msgType, msg });
   }
 
+  /** Call a ROS service exposed through rosbridge. */
+  callService(
+    service: string,
+    args: Record<string, unknown> = {},
+    timeoutMs = 5000,
+  ): Promise<Record<string, unknown>> {
+    if (!this.ws || this.status !== "connected") {
+      return Promise.reject(new Error("Not connected to rosbridge server"));
+    }
+
+    const id = this.nextId("svc");
+
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingServiceCalls.delete(id);
+        reject(new Error(`rosbridge service call timed out: ${service}`));
+      }, timeoutMs);
+
+      this.pendingServiceCalls.set(id, { resolve, reject, timer });
+
+      this.send({
+        op: "call_service",
+        id,
+        service,
+        args,
+      });
+    });
+  }
+
   /** Register a connection status change handler. */
   onConnection(handler: ConnectionHandler): () => void {
     this.connectionHandlers.add(handler);
@@ -156,6 +193,7 @@ export class RosbridgeClient {
     };
 
     this.ws.onclose = () => {
+      this.rejectPendingServiceCalls("Rosbridge disconnected before service response");
       this.ws = null;
       if (!this.intentionalClose && this.reconnect) {
         this.setStatus("reconnecting");
@@ -183,6 +221,11 @@ export class RosbridgeClient {
     }
 
     const op = msg.op as string | undefined;
+    if (op === "service_response") {
+      this.handleServiceResponse(msg);
+      return;
+    }
+
     if (op !== "publish") return;
 
     const topic = msg.topic as string | undefined;
@@ -194,6 +237,36 @@ export class RosbridgeClient {
       for (const handler of handlers) {
         handler(payload);
       }
+    }
+  }
+
+  private handleServiceResponse(message: Record<string, unknown>): void {
+    const id = message.id;
+    if (typeof id !== "string") return;
+
+    const pending = this.pendingServiceCalls.get(id);
+    if (!pending) return;
+
+    clearTimeout(pending.timer);
+    this.pendingServiceCalls.delete(id);
+
+    if (message.result === false) {
+      const service = typeof message.service === "string" ? message.service : "unknown-service";
+      pending.reject(new Error(`rosbridge service call failed: ${service}`));
+      return;
+    }
+
+    const values = message.values;
+    pending.resolve(
+      typeof values === "object" && values !== null ? (values as Record<string, unknown>) : {},
+    );
+  }
+
+  private rejectPendingServiceCalls(reason: string): void {
+    for (const [id, pending] of this.pendingServiceCalls) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error(reason));
+      this.pendingServiceCalls.delete(id);
     }
   }
 

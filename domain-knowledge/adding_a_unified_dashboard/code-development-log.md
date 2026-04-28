@@ -306,6 +306,49 @@ Issues encountered and resolved:
 - T3.3 complete.
 - Epic 3 is now complete and validated for the current scope.
 
+### 12) Phase 4 implementation started (EPIC 4 / T4.1)
+
+#### 12.1 Topics explorer MVP delivered scope
+- Added rosbridge service-call support in the UI transport so the dashboard can query topic metadata through rosapi without creating a separate transport path.
+- Added a dedicated topic store and integrated it into the existing canonical event bus + domain event routing path.
+- Added a live Topics and Messages view on `/topics` with:
+  - topic discovery list
+  - text filter by topic name, namespace, or type
+  - subscribe/unsubscribe controls
+  - message viewer with formatted metadata and raw payload JSON
+- Preserved the `/odom` golden path by keeping the existing Overview subscription untouched and adding explicit `/topics` `/odom` subscribe visibility coverage in tests.
+
+#### 12.2 Files changed for T4.1
+- domain-knowledge/adding_a_unified_dashboard/code-development-log.md
+- ui/e2e/smoke.spec.ts
+- ui/src/App.vue
+- ui/src/core/events/envelope.ts
+- ui/src/core/events/envelope.unit.test.ts
+- ui/src/router/index.ts
+- ui/src/rosbridge/client.integration.test.ts
+- ui/src/rosbridge/client.ts
+- ui/src/rosbridge/types.ts
+- ui/src/services/domain-event-routing.integration.test.ts
+- ui/src/services/domain-event-routing.ts
+- ui/src/services/topic-explorer.integration.test.ts
+- ui/src/services/topic-explorer.ts
+- ui/src/stores/topic.ts
+- ui/src/stores/topic.unit.test.ts
+- ui/src/views/TopicsView.unit.test.ts
+- ui/src/views/TopicsView.vue
+
+#### 12.3 Validation results for T4.1
+- Focused validation: passed (`src/rosbridge/client.integration.test.ts`, `src/stores/topic.unit.test.ts`, `src/services/topic-explorer.integration.test.ts`, `src/views/TopicsView.unit.test.ts`, `src/services/domain-event-routing.integration.test.ts`).
+- Typecheck: passed.
+- Unit tests: passed (21 tests).
+- Integration tests: passed (15 tests).
+- E2E smoke: passed (3 tests), including explicit `/topics` `/odom` subscription visibility and payload viewer coverage.
+
+#### 12.4 Known limitations after T4.1
+- Topic discovery currently depends on rosapi service availability at `/rosapi/topics` and `/rosapi/topic_type`.
+- Filter scope is MVP text filtering only; dedicated namespace/type/rate controls remain future work.
+- Message inspection currently shows the latest payload with metadata and raw JSON; publish forms and service invocation are intentionally deferred to T4.2.
+
 ## Files introduced or modified during completed work
 - ui/src/router/index.ts
 - ui/src/views/OverviewView.vue
@@ -335,12 +378,19 @@ Issues encountered and resolved:
 - ui/src/services/rl-connection.integration.test.ts
 - ui/src/views/AgentsView.vue
 - ui/src/views/AgentsView.unit.test.ts
+- ui/src/services/topic-explorer.ts
+- ui/src/services/topic-explorer.integration.test.ts
+- ui/src/stores/topic.ts
+- ui/src/stores/topic.unit.test.ts
+- ui/src/views/TopicsView.vue
+- ui/src/views/TopicsView.unit.test.ts
 
 ## Current status
 - Phase 1 remains complete and validated.
 - Phase 2 EPIC 2 (T2.1, T2.2, T2.3) is complete and validated.
 - EPIC 3 (T3.1, T3.2, T3.3) is complete and validated.
-- Next planned work begins with EPIC 4.
+- EPIC 4 / T4.1 Topics explorer MVP is complete and validated.
+- Next planned work is EPIC 4 / T4.2 Publish and service forms.
 
 ## Commit History Ledger
 Use this section to keep an atomized record of commits as each phase is completed.
@@ -353,7 +403,8 @@ Use this section to keep an atomized record of commits as each phase is complete
 | 2026-04-21 | 3abe450 | feat: Implement event bus and routing for canonical event envelopes | Phase 2 - T2.2 event bus and routing |
 | 2026-04-21 | 0841bd8 | feat: Complete Phase 2 implementation for EPIC 2, including domain stores, event routing, and associated tests | Phase 2 - T2.3 domain stores baseline |
 | 2026-04-28 | 2960b4b | feat: complete Epic 3 RL runtime and REST fallback | Phase 3 - T3.1 live RL WS + T3.2 REST fallback |
-| 2026-04-28 | TBD (this commit) | feat: complete Epic 3 Agents MVP view | Phase 3 - T3.3 Agents MVP |
+| 2026-04-28 | c8cc455 | feat: complete Epic 3 Agents MVP view | Phase 3 - T3.3 Agents MVP |
+| 2026-04-28 | TBD (this commit) | feat: complete Epic 4 T4.1 Topics explorer MVP | Phase 4 - T4.1 topics explorer MVP |
 
 ### Ledger update rules
 - Add one row per atomic commit.

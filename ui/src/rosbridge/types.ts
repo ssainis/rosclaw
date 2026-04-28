@@ -19,5 +19,9 @@ export interface RosbridgeMessage {
   id?: string;
   topic?: string;
   type?: string;
+  service?: string;
+  args?: Record<string, unknown>;
   msg?: unknown;
+  values?: Record<string, unknown>;
+  result?: boolean;
 }
