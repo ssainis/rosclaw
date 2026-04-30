@@ -6,7 +6,7 @@ RosClaw connects OpenClaw to ROS2 using transport adapters (rosbridge by default
 
 - OpenClaw plugin code for ROS2 tool execution and safety controls
 - ROS2 workspace packages for discovery/messages/agent bridge
-- A Vue dashboard app for live rosbridge validation and upcoming unified dashboard work
+- A Vue dashboard app for the unified ROS, RL, control, safety, and replay dashboard
 - Docker Compose modes for local, dev, cloud, and robot-side scenarios
 
 ## Architecture
@@ -76,6 +76,10 @@ For the full UI ROS2-to-canvas validation flow (including reconnect behavior), u
 
 - `docs/ui-e2e-testing.md`
 
+For the current shipped dashboard scope and known gaps, use:
+
+- `docs/unified-dashboard-current-state.md`
+
 ## Key Packages
 
 - `extensions/openclaw-plugin`: OpenClaw extension with transport abstraction, tools, hooks, and safety checks
@@ -101,6 +105,7 @@ pnpm clean
 
 - `docs/architecture.md`
 - `docs/ui-e2e-testing.md`
+- `docs/unified-dashboard-current-state.md`
 - `domain-knowledge/adding_a_unified_dashboard/proposal-for-a-unified-dashboard.md`
 - `domain-knowledge/adding_a_unified_dashboard/spec-for-a-unified-dashboard.md`
 

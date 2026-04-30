@@ -1,5 +1,14 @@
 # Plan for a Unified Dashboard
 
+## Status Note
+
+This document is the phased delivery plan created before and during implementation.
+
+- Treat it as planning history plus execution structure.
+- Many items described here are now implemented on the `adding-a-unified-dashboard` branch.
+- For the shipped scope, use `docs/unified-dashboard-current-state.md`.
+- For completion details and validation history, use `domain-knowledge/adding_a_unified_dashboard/code-development-log.md`.
+
 ## 1. Plan Purpose
 
 This plan converts the dashboard spec into an implementation sequence that can be executed by engineering with minimal ambiguity.

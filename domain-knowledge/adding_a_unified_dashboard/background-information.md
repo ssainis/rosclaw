@@ -1,5 +1,13 @@
 # ssainis issues with the UI
 
+## Status Note
+
+This file is pre-implementation background context collected before the unified dashboard was built.
+
+- Statements here about the dashboard not existing are historical.
+- Use this file to understand the original integration problems and why the dashboard effort started.
+- For the current branch implementation, use `docs/unified-dashboard-current-state.md`.
+
 I had built a tiny UI to enable me to sort out all the issues I was facing with getting the RosClaw-RosBridge-OpenClaw RL connection up and running. 
 
 Here’s the **concise, accurate Markdown summary** of everything that happened — the full arc from environment rebuild → RosClaw working → RosBridge working → and the failed connection to OpenClaw‑RL.

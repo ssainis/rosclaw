@@ -1,5 +1,13 @@
 # Proposal for a Unified Dashboard
 
+## Status Note
+
+This document captures the original proposal and solution framing for the unified dashboard effort.
+
+- Treat it as historical design context.
+- Some folder examples and future-tense statements reflect the proposal stage rather than the exact shipped implementation.
+- For the implemented branch state, use `docs/unified-dashboard-current-state.md`.
+
 ## 1. Purpose
 
 This document proposes a full "OpenClaw Canvas" dashboard that unifies:

@@ -1,5 +1,13 @@
 # Spec for a Unified Dashboard
 
+## Status Note
+
+This specification is the design target for the unified dashboard.
+
+- It still describes the intended product behavior and acceptance criteria.
+- The branch implementation covers a substantial portion of this scope, but not every item is complete yet.
+- For the current implemented surface and known gaps, use `docs/unified-dashboard-current-state.md`.
+
 ## 1. Document Status
 
 - Name: OpenClaw Canvas Unified Dashboard Specification

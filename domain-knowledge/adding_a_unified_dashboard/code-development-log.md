@@ -703,59 +703,23 @@ Issues encountered and resolved:
 - ui/src/views/ControlView.vue
 - ui/src/views/ControlView.unit.test.ts
 - ui/src/components/AppShell.vue
-
-## Current status
-- Phase 1 remains complete and validated.
-- Phase 2 EPIC 2 (T2.1, T2.2, T2.3) is complete and validated.
-- EPIC 3 (T3.1, T3.2, T3.3) is complete and validated.
-- EPIC 4 / T4.1 Topics explorer MVP is complete and validated.
-- EPIC 4 / T4.2 Publish and service forms is complete and validated.
-- EPIC 4 / T4.3 Control center MVP is complete and validated.
-- EPIC 4 / T4.4 E-stop entry and confirmation is complete and validated.
-- EPIC 4 (T4.1-T4.4) is complete and validated for this branch scope.
-- EPIC 5 / T5.1 Overview productionization is complete and validated.
-- EPIC 5 / T5.2 Metrics and rewards panel v1 is complete and validated.
-- EPIC 5 / T5.3 Mission timeline v1 is complete and validated.
-- EPIC 5 / T5.4 Alerts and safety panel is complete and validated.
-- EPIC 5 (T5.1-T5.4) is complete and validated for this branch scope.
-- EPIC 6 / T6.1 Audit trail UI and API wiring is complete and validated.
-- EPIC 6 / T6.2 Layout persistence and role presets is complete and validated.
-- EPIC 6 / T6.3 Performance hardening is complete and validated.
-- EPIC 6 / T6.4 Reliability hardening is complete and validated.
-- EPIC 6 (T6.1-T6.4) is complete and validated for this branch scope.
-- EPIC 7 / T7.1 Session capture model is complete and validated.
-- EPIC 7 / T7.2 Replay engine and scrubber is complete and validated.
-- EPIC 7 / T7.3 Episode comparison and anomaly indicators is complete and validated.
-- EPIC 7 (T7.1-T7.3) is complete and validated for this branch scope.
-
-### 23) EPIC 6 / T6.4 Reliability hardening
-
-#### 23.1 Scope
-Three targeted reliability layers:
-
-1. **Stale-state UX**: A degraded-mode banner is rendered inside the main content panel whenever any backend connection (`rosbridge` or `rl`) enters `stale`, `reconnecting`, or `failed` state. The banner includes a "Reconnect" button that tears down and re-establishes the rosbridge transport.
-2. **Partial failure boundaries**: A `PanelErrorBoundary.vue` component (using `onErrorCaptured`) wraps all routed views via the `<RouterView>` slot in `AppShell.vue`. Any uncaught Vue render error in a view is isolated: the rest of the shell (header, nav, other panels) remains functional and the operator sees a recoverable error panel with a Retry action.
-3. **Diagnostics reconnect action**: `reconnectRosbridge()` is exported from `rosbridge-connection.ts` and wired to the banner's Reconnect button, providing an operator-accessible manual recovery path.
-
-#### 23.2 Files introduced or modified for T6.4
-- `ui/src/services/rosbridge-connection.ts` — added `reconnectRosbridge()` export (shutdown + re-init)
-- `ui/src/components/AppShell.vue` — imported `reconnectRosbridge` and `PanelErrorBoundary`; added `isDegraded` computed, `handleReconnect()` action, degraded-mode banner template, banner CSS; replaced `<RouterView />` with slot pattern wrapping `PanelErrorBoundary`
-- `ui/src/components/PanelErrorBoundary.vue` — NEW: generic Vue error boundary wrapper using `onErrorCaptured`; exposes `error`/`reset` for testability
-- `ui/src/components/PanelErrorBoundary.unit.test.ts` — NEW: 4 unit tests covering slot rendering, error state injection, retry action, and default label
-- `ui/src/main.ts` — exposes `window.__pinia` in non-production mode to enable E2E store state injection
-- `ui/e2e/smoke.spec.ts` — added degraded-mode banner E2E test (inject stale state via Pinia, verify banner visibility, restore and verify banner gone)
-
-#### 23.3 Validation results for T6.4
-- Typecheck: passed (`pnpm --filter @rosclaw/ui typecheck`).
-- Unit tests: passed (`pnpm --filter @rosclaw/ui test:unit`, 56 tests).
-- Integration tests: passed (`pnpm --filter @rosclaw/ui test:integration`, 20 tests).
-- E2E smoke: passed (`pnpm --filter @rosclaw/ui test:e2e -- ui/e2e/smoke.spec.ts`, 10 tests).
-
-#### 23.4 Known limitations after T6.4
-- `reconnectRosbridge` only reconnects the rosbridge transport; RL WebSocket reconnection is handled by its own service and is not triggered by the banner's Reconnect button.
-- The degraded banner does not distinguish between which backend is degraded; it is intentionally a single-signal indicator to keep the UX simple.
-- `window.__pinia` exposure is gated on `MODE !== "production"`. This should be audited before any production build promotion.
-
+- ui/src/core/perf/list-utils.ts
+- ui/src/core/perf/list-utils.unit.test.ts
+- ui/src/core/perf/virtual-list.ts
+- ui/src/core/perf/virtual-list.unit.test.ts
+- ui/src/components/PanelErrorBoundary.vue
+- ui/src/components/PanelErrorBoundary.unit.test.ts
+- ui/src/stores/session-capture.ts
+- ui/src/stores/session-capture.unit.test.ts
+- ui/src/stores/session-capture.integration.test.ts
+- ui/src/views/ReplayView.vue
+- ui/src/views/ReplayView.unit.test.ts
+- ui/src/services/replay-engine.ts
+- ui/src/services/replay-engine.integration.test.ts
+- ui/src/services/episode-analysis.ts
+- ui/src/services/episode-analysis.unit.test.ts
+- ui/src/views/EpisodeComparisonView.vue
+- ui/src/views/EpisodeComparisonView.unit.test.ts
 
 ### 22) EPIC 6 / T6.3 Performance hardening
 
@@ -788,40 +752,33 @@ These utilities live in `ui/src/core/perf/` to keep the transport/domain/UI boun
 - Series decimation uses even-stride sampling; min/max envelope preservation is not yet applied.
 - Payload preview cap is applied at the store level; the raw structured payload is still accessible for audit trail lookups.
 
+### 23) EPIC 6 / T6.4 Reliability hardening
 
-## Commit History Ledger
-Use this section to keep an atomized record of commits as each phase is completed.
+#### 23.1 Scope
+Three targeted reliability layers:
 
-| Date (UTC) | Commit | Message | Scope |
-|---|---|---|---|
-| 2026-04-21 | 442c23b | feat: Add unified dashboard documentation and implementation plans | Planning docs and implementation blueprint |
-| 2026-04-21 | 4ab29c7 | feat: Refactor Rosbridge connection and UI components | Phase 1 foundation, shell path, and rosbridge lifecycle baseline |
-| 2026-04-21 | ce8bb5d | feat: Implement canonical event envelope and associated validation logic | Phase 2 - T2.1 canonical event envelope |
-| 2026-04-21 | 3abe450 | feat: Implement event bus and routing for canonical event envelopes | Phase 2 - T2.2 event bus and routing |
-| 2026-04-21 | 0841bd8 | feat: Complete Phase 2 implementation for EPIC 2, including domain stores, event routing, and associated tests | Phase 2 - T2.3 domain stores baseline |
-| 2026-04-28 | 2960b4b | feat: complete Epic 3 RL runtime and REST fallback | Phase 3 - T3.1 live RL WS + T3.2 REST fallback |
-| 2026-04-28 | c8cc455 | feat: complete Epic 3 Agents MVP view | Phase 3 - T3.3 Agents MVP |
-| 2026-04-28 | 5db3686 | feat: complete Epic 4 T4.1 Topics explorer MVP | Phase 4 - T4.1 topics explorer MVP |
-| 2026-04-28 | f308ad2 | feat: complete Epic 4 T4.2 publish and service forms | Phase 4 - T4.2 publish and service forms |
-| 2026-04-28 | 9fdef32 | feat: complete Epic 4 T4.3 control center MVP | Phase 4 - T4.3 control center MVP |
-| 2026-04-28 | 8c3e43b | feat: complete Epic 4 T4.4 emergency stop entry and confirmation | Phase 4 - T4.4 emergency stop and audit path |
-| 2026-04-28 | 7555afc | feat: complete Epic 5 T5.1 overview productionization | Phase 5 - T5.1 overview productionization |
-| 2026-04-28 | c6018d8 | feat: complete Epic 5 T5.2 metrics and rewards panel | Phase 5 - T5.2 metrics and rewards panel |
-| 2026-04-28 | b6d1f24 | feat: complete Epic 5 T5.3 mission timeline view | Phase 5 - T5.3 mission timeline v1 |
-| 2026-04-28 | ce5b53d | feat: complete Epic 5 T5.4 alerts and safety panel | Phase 5 - T5.4 alerts and safety panel |
-| 2026-04-28 | cf66dad | feat: complete Epic 6 T6.1 audit trail UI and API wiring | Epic 6 - T6.1 audit trail |
-| 2026-04-28 | 9d95d32 | feat: complete Epic 6 T6.2 layout persistence and role presets | Epic 6 - T6.2 layout persistence |
-| 2026-04-28 | 66e5b8b | feat: complete Epic 6 T6.3 performance hardening | Epic 6 - T6.3 perf hardening |
-| 2026-04-28 | 66d14eb | feat: complete Epic 6 T6.4 reliability hardening | Epic 6 - T6.4 reliability hardening |
-| 2026-04-28 | 5ab8b6d | feat: complete Epic 7 T7.1 session capture model | Phase 3 - T7.1 session capture and export/import |
-| 2026-04-28 | 6d6860a | feat: complete Epic 7 T7.2 replay engine and synchronized scrubber | Phase 3 - T7.2 deterministic replay and scrubber |
-| 2026-04-28 | 139967f | feat: complete Epic 7 T7.3 episode comparison and anomaly indicators | Phase 3 - T7.3 episode comparison and anomaly analysis |
+1. **Stale-state UX**: A degraded-mode banner is rendered inside the main content panel whenever any backend connection (`rosbridge` or `rl`) enters `stale`, `reconnecting`, or `failed` state. The banner includes a "Reconnect" button that tears down and re-establishes the rosbridge transport.
+2. **Partial failure boundaries**: A `PanelErrorBoundary.vue` component (using `onErrorCaptured`) wraps all routed views via the `<RouterView>` slot in `AppShell.vue`. Any uncaught Vue render error in a view is isolated: the rest of the shell (header, nav, other panels) remains functional and the operator sees a recoverable error panel with a Retry action.
+3. **Diagnostics reconnect action**: `reconnectRosbridge()` is exported from `rosbridge-connection.ts` and wired to the banner's Reconnect button, providing an operator-accessible manual recovery path.
 
-### Ledger update rules
-- Add one row per atomic commit.
-- Prefer one commit per completed phase slice.
-- Include abbreviated commit SHA (7-12 chars).
-- Keep scope explicit (for example: "Phase 2 - event envelope + bus").
+#### 23.2 Files introduced or modified for T6.4
+- `ui/src/services/rosbridge-connection.ts` — added `reconnectRosbridge()` export (shutdown + re-init)
+- `ui/src/components/AppShell.vue` — imported `reconnectRosbridge` and `PanelErrorBoundary`; added `isDegraded` computed, `handleReconnect()` action, degraded-mode banner template, banner CSS; replaced `<RouterView />` with slot pattern wrapping `PanelErrorBoundary`
+- `ui/src/components/PanelErrorBoundary.vue` — NEW: generic Vue error boundary wrapper using `onErrorCaptured`; exposes `error`/`reset` for testability
+- `ui/src/components/PanelErrorBoundary.unit.test.ts` — NEW: 4 unit tests covering slot rendering, error state injection, retry action, and default label
+- `ui/src/main.ts` — exposes `window.__pinia` in non-production mode to enable E2E store state injection
+- `ui/e2e/smoke.spec.ts` — added degraded-mode banner E2E test (inject stale state via Pinia, verify banner visibility, restore and verify banner gone)
+
+#### 23.3 Validation results for T6.4
+- Typecheck: passed (`pnpm --filter @rosclaw/ui typecheck`).
+- Unit tests: passed (`pnpm --filter @rosclaw/ui test:unit`, 56 tests).
+- Integration tests: passed (`pnpm --filter @rosclaw/ui test:integration`, 20 tests).
+- E2E smoke: passed (`pnpm --filter @rosclaw/ui test:e2e -- ui/e2e/smoke.spec.ts`, 10 tests).
+
+#### 23.4 Known limitations after T6.4
+- `reconnectRosbridge` only reconnects the rosbridge transport; RL WebSocket reconnection is handled by its own service and is not triggered by the banner's Reconnect button.
+- The degraded banner does not distinguish between which backend is degraded; it is intentionally a single-signal indicator to keep the UX simple.
+- `window.__pinia` exposure is gated on `MODE !== "production"`. This should be audited before any production build promotion.
 
 ### 24) Phase 3 implementation completed (EPIC 7 / T7.1-T7.3)
 
@@ -904,3 +861,61 @@ Use this section to keep an atomized record of commits as each phase is complete
 - T7.3 complete: episode comparison with anomaly detection and recommendations.
 - Epic 7 (T7.1-T7.3) is now complete and validated for Phase 3.
 - New routes: `/replay` (capture and playback), `/episodes` (comparison).
+
+## Current status
+- Phase 1 remains complete and validated.
+- Phase 2 EPIC 2 (T2.1, T2.2, T2.3) is complete and validated.
+- EPIC 3 (T3.1, T3.2, T3.3) is complete and validated.
+- EPIC 4 / T4.1 Topics explorer MVP is complete and validated.
+- EPIC 4 / T4.2 Publish and service forms is complete and validated.
+- EPIC 4 / T4.3 Control center MVP is complete and validated.
+- EPIC 4 / T4.4 E-stop entry and confirmation is complete and validated.
+- EPIC 4 (T4.1-T4.4) is complete and validated for this branch scope.
+- EPIC 5 / T5.1 Overview productionization is complete and validated.
+- EPIC 5 / T5.2 Metrics and rewards panel v1 is complete and validated.
+- EPIC 5 / T5.3 Mission timeline v1 is complete and validated.
+- EPIC 5 / T5.4 Alerts and safety panel is complete and validated.
+- EPIC 5 (T5.1-T5.4) is complete and validated for this branch scope.
+- EPIC 6 / T6.1 Audit trail UI and API wiring is complete and validated.
+- EPIC 6 / T6.2 Layout persistence and role presets is complete and validated.
+- EPIC 6 / T6.3 Performance hardening is complete and validated.
+- EPIC 6 / T6.4 Reliability hardening is complete and validated.
+- EPIC 6 (T6.1-T6.4) is complete and validated for this branch scope.
+- EPIC 7 / T7.1 Session capture model is complete and validated.
+- EPIC 7 / T7.2 Replay engine and scrubber is complete and validated.
+- EPIC 7 / T7.3 Episode comparison and anomaly indicators is complete and validated.
+- EPIC 7 (T7.1-T7.3) is complete and validated for this branch scope.
+
+## Commit History Ledger
+Use this section to keep an atomized record of commits as each phase is completed.
+
+| Date (UTC) | Commit | Message | Scope |
+|---|---|---|---|
+| 2026-04-21 | 442c23b | feat: Add unified dashboard documentation and implementation plans | Planning docs and implementation blueprint |
+| 2026-04-21 | 4ab29c7 | feat: Refactor Rosbridge connection and UI components | Phase 1 foundation, shell path, and rosbridge lifecycle baseline |
+| 2026-04-21 | ce8bb5d | feat: Implement canonical event envelope and associated validation logic | Phase 2 - T2.1 canonical event envelope |
+| 2026-04-21 | 3abe450 | feat: Implement event bus and routing for canonical event envelopes | Phase 2 - T2.2 event bus and routing |
+| 2026-04-21 | 0841bd8 | feat: Complete Phase 2 implementation for EPIC 2, including domain stores, event routing, and associated tests | Phase 2 - T2.3 domain stores baseline |
+| 2026-04-28 | 2960b4b | feat: complete Epic 3 RL runtime and REST fallback | Phase 3 - T3.1 live RL WS + T3.2 REST fallback |
+| 2026-04-28 | c8cc455 | feat: complete Epic 3 Agents MVP view | Phase 3 - T3.3 Agents MVP |
+| 2026-04-28 | 5db3686 | feat: complete Epic 4 T4.1 Topics explorer MVP | Phase 4 - T4.1 topics explorer MVP |
+| 2026-04-28 | f308ad2 | feat: complete Epic 4 T4.2 publish and service forms | Phase 4 - T4.2 publish and service forms |
+| 2026-04-28 | 9fdef32 | feat: complete Epic 4 T4.3 control center MVP | Phase 4 - T4.3 control center MVP |
+| 2026-04-28 | 8c3e43b | feat: complete Epic 4 T4.4 emergency stop entry and confirmation | Phase 4 - T4.4 emergency stop and audit path |
+| 2026-04-28 | 7555afc | feat: complete Epic 5 T5.1 overview productionization | Phase 5 - T5.1 overview productionization |
+| 2026-04-28 | c6018d8 | feat: complete Epic 5 T5.2 metrics and rewards panel | Phase 5 - T5.2 metrics and rewards panel |
+| 2026-04-28 | b6d1f24 | feat: complete Epic 5 T5.3 mission timeline view | Phase 5 - T5.3 mission timeline v1 |
+| 2026-04-28 | ce5b53d | feat: complete Epic 5 T5.4 alerts and safety panel | Phase 5 - T5.4 alerts and safety panel |
+| 2026-04-28 | cf66dad | feat: complete Epic 6 T6.1 audit trail UI and API wiring | Epic 6 - T6.1 audit trail |
+| 2026-04-28 | 9d95d32 | feat: complete Epic 6 T6.2 layout persistence and role presets | Epic 6 - T6.2 layout persistence |
+| 2026-04-28 | 66e5b8b | feat: complete Epic 6 T6.3 performance hardening | Epic 6 - T6.3 perf hardening |
+| 2026-04-28 | 66d14eb | feat: complete Epic 6 T6.4 reliability hardening | Epic 6 - T6.4 reliability hardening |
+| 2026-04-28 | 5ab8b6d | feat: complete Epic 7 T7.1 session capture model | Phase 3 - T7.1 session capture and export/import |
+| 2026-04-28 | 6d6860a | feat: complete Epic 7 T7.2 replay engine and synchronized scrubber | Phase 3 - T7.2 deterministic replay and scrubber |
+| 2026-04-28 | 139967f | feat: complete Epic 7 T7.3 episode comparison and anomaly indicators | Phase 3 - T7.3 episode comparison and anomaly analysis |
+
+### Ledger update rules
+- Add one row per atomic commit.
+- Prefer one commit per completed phase slice.
+- Include abbreviated commit SHA (7-12 chars).
+- Keep scope explicit (for example: "Phase 2 - event envelope + bus").
