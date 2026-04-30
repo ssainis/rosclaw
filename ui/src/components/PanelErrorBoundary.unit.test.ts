@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { defineComponent, h, nextTick } from "vue";
+import { nextTick } from "vue";
 import { mount } from "@vue/test-utils";
 import PanelErrorBoundary from "./PanelErrorBoundary.vue";
 

@@ -8,6 +8,7 @@ export interface ComparisonMetrics {
   rewardDeltaPercent: number;
   baseActionCount: number;
   comparisonActionCount: number;
+  actionCountDelta: number;
   baseEventCount: number;
   comparisonEventCount: number;
   eventCountDelta: number;

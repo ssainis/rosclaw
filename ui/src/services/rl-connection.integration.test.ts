@@ -15,13 +15,15 @@ import { startRlConnectionRuntime } from "./rl-connection";
 
 class MockWebSocket {
   static instances: MockWebSocket[] = [];
+  readonly url: string;
 
   onopen: (() => void) | null = null;
   onclose: (() => void) | null = null;
   onerror: (() => void) | null = null;
   onmessage: ((event: MessageEvent<string>) => void) | null = null;
 
-  constructor(public readonly url: string) {
+  constructor(url: string) {
+    this.url = url;
     MockWebSocket.instances.push(this);
   }
 

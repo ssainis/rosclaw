@@ -43,14 +43,16 @@ export const useControlStore = defineStore("control", {
   actions: {
     markPending(record: Omit<ControlActionRecord, "status" | "completedAt" | "response" | "error">): void {
       this.activeActionIdsByKey[record.actionKey] = record.actionId;
+      const pendingEntry: ControlActionRecord = {
+        ...record,
+        status: "pending",
+        response: null,
+        error: null,
+        completedAt: null,
+      };
+
       this.history = [
-        {
-          ...record,
-          status: "pending",
-          response: null,
-          error: null,
-          completedAt: null,
-        },
+        pendingEntry,
         ...this.history.filter((entry) => entry.actionId !== record.actionId),
       ].slice(0, HISTORY_LIMIT);
     },

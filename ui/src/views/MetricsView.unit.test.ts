@@ -90,7 +90,7 @@ describe("MetricsView", () => {
 
     expect(wrapper.get('[data-testid="metrics-action-histogram"]').text()).toContain("turn_left");
     expect(wrapper.get('[data-testid="metrics-action-histogram"]').text()).toContain("drive_forward");
-    expect(wrapper.get('[data-testid="metrics-spark-agent-7"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="metrics-spark-agent-7"]').exists()).toBe(true);
     expect(wrapper.get('[data-testid="metrics-latency-table"]').text()).toContain("Switch to assist");
   });
 });

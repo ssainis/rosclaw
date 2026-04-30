@@ -7,6 +7,12 @@ import { useConnectionStore } from "../stores/connection";
 import { useTopicStore } from "../stores/topic";
 import TopicsView from "./TopicsView.vue";
 
+interface ValidationResult {
+  ok: boolean;
+  errors: string[];
+  parsed: Record<string, unknown> | null;
+}
+
 const {
   callRosServiceMock,
   publishToTopicMock,
@@ -24,12 +30,12 @@ const {
   refreshTopicCatalogMock: vi.fn(),
   subscribeToTopicMock: vi.fn(),
   unsubscribeFromTopicMock: vi.fn(),
-  validateServiceCallInputMock: vi.fn(() => ({
+  validateServiceCallInputMock: vi.fn<() => ValidationResult>(() => ({
     ok: true,
     errors: [],
     parsed: { robot_namespace: "/demo" },
   })),
-  validateTopicPublishInputMock: vi.fn(() => ({
+  validateTopicPublishInputMock: vi.fn<() => ValidationResult>(() => ({
     ok: true,
     errors: [],
     parsed: { linear: { x: 0.2, y: 0, z: 0 }, angular: { x: 0, y: 0, z: 0 } },

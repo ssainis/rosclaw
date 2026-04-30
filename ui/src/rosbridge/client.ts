@@ -257,9 +257,11 @@ export class RosbridgeClient {
     if (message.result === false) {
       const service = typeof message.service === "string" ? message.service : "unknown-service";
       const values = message.values;
+      const valuesRecord =
+        typeof values === "object" && values !== null ? (values as Record<string, unknown>) : null;
       const detail =
-        typeof values === "object" && values !== null && typeof values.error === "string"
-          ? ` (${values.error})`
+        valuesRecord && typeof valuesRecord.error === "string"
+          ? ` (${valuesRecord.error})`
           : "";
       pending.reject(new Error(`rosbridge service call failed: ${service}${detail}`));
       return;

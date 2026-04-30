@@ -30,17 +30,6 @@ const rawRewardSamples = computed(() =>
   ),
 );
 
-// Decimated reward samples (max 20 per agent) used only for sparkline rendering.
-const rewardSamples = computed(() =>
-  sortedAgents.value.flatMap((agent) =>
-    decimateSeriesForDisplay(agent.rewardSeries, 20).map((value, index) => ({
-      key: `${agent.id}-${index}`,
-      agentId: agent.id,
-      value,
-    })),
-  ),
-);
-
 const averageReward = computed(() => {
   if (rawRewardSamples.value.length === 0) return null;
   const total = rawRewardSamples.value.reduce((sum, sample) => sum + sample.value, 0);

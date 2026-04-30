@@ -45,8 +45,6 @@ function runComparison() {
     error.value = String(err);
   }
 }
-
-const severityClass = (severity: string) => `severity-${severity}`;
 </script>
 
 <template>

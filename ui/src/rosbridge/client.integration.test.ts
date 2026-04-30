@@ -3,6 +3,7 @@ import { RosbridgeClient } from "./client";
 
 class MockWebSocket {
   static instances: MockWebSocket[] = [];
+  readonly url: string;
 
   onopen: (() => void) | null = null;
   onclose: (() => void) | null = null;
@@ -11,7 +12,8 @@ class MockWebSocket {
 
   sentMessages: string[] = [];
 
-  constructor(public readonly url: string) {
+  constructor(url: string) {
+    this.url = url;
     MockWebSocket.instances.push(this);
   }
 
